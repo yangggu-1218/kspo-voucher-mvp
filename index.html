@@ -2145,9 +2145,8 @@ function govBar(){
   return '<div class="gov-bar"><div class="wrap gov-bar-in">'+
     /* CHG-26: 강좌·금액은 전부 공공데이터 오픈API 실측값으로 교체됐는데도 «예시 데이터가
        섞여 있어요» 문구가 남아 있었습니다. 지금 시연값인 항목은 셔틀 하나뿐이라 그것만 밝힙니다. */
-    '<span><b>공식 서비스가 아닙니다.</b> 국민체육진흥공단과 무관한 공모전 출품 데모예요. '+
-    '셔틀 운영 여부는 시연용 표시예요.</span>'+
-    '<button type="button" onclick="App.go(\'privacy\')">개인정보 처리 안내</button>'+
+    '<span><b>비공식 데모</b> · 국민체육진흥공단과 무관 · 셔틀 표시는 시연용</span>'+
+    '<button type="button" onclick="App.go(\'privacy\')">개인정보 안내</button>'+
   '</div></div>';
 }
 function header(){
