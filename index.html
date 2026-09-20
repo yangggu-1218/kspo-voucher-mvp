@@ -2485,7 +2485,13 @@ function mapSectionHTML(v){
   else if(state.geo) geoBtn='<button type="button" class="btn btn-g btn-sm" onclick="App.clearGeo()">내 위치 해제</button>';
   else geoBtn='<button type="button" class="btn btn-o btn-sm" onclick="App.useGeo()">'+icon("pin",14)+' 내 위치 사용</button>';
 
+  /* CHG-29: 필터 패널을 접어둔 채로도 지도 위에서 바로 지역을 바꿀 수 있도록,
+     «내 위치 사용» 옆에도 같은 지역 선택 콤보를 하나 더 둔다(왼쪽 필터의 지역 선택과 동일하게 동작). */
   var geobar='<div class="geobar">'+geoBtn+
+    '<label class="src">지역 '+
+      '<select class="sel-f" style="min-height:32px;width:auto;font-size:13px;padding:0 6px" onchange="App.setRegion(this.value)" aria-label="지도 지역 선택">'+
+      regionOptions(f.code, "지역 전체")+
+      '</select></label>'+
     (state.geoState==="error"?'<span class="src" style="color:var(--lost)">위치를 가져오지 못했어요. 브라우저 위치 권한을 확인해주세요.</span>':'')+
     (state.geo?('<label class="src">반경 '+
       '<select class="sel-f" style="min-height:32px;width:auto;font-size:13px;padding:0 6px" onchange="App.setRadius(this.value)" aria-label="반경">'+
