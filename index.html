@@ -1906,9 +1906,7 @@ function nationBarHTML(){
   }
   if(n.status==="ready"){
     return '<div class="natbar ok"><div class="natbar-in">'+
-      '<span class="natbar-t">전국 <b class="mono">'+Number(n.count).toLocaleString()+'</b>개 강좌 · '+REGIONS.length+'개 시군구'+
-        (n.cached?' <span class="src">(저장해 둔 데이터)</span>'
-                 :(n.source==="file"?' <span class="src">(데이터 파일)</span>':''))+'</span>'+
+      '<span class="natbar-t">전국 <b class="mono">'+Number(n.count).toLocaleString()+'</b>개 강좌 데이터를 불러왔어요 · 아래는 선택한 지역 기준으로 보여드려요</span>'+
       '<span style="display:flex;gap:6px;flex-wrap:wrap">'+
         '<button type="button" class="btn btn-g btn-sm" onclick="App.loadNation(true)">새로 받기</button>'+
         (state.session.admin?'<button type="button" class="btn btn-g btn-sm" onclick="App.exportNation()">파일로 내보내기</button>':'')+
