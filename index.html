@@ -1467,8 +1467,19 @@ var DATASETS = [
 
 function won(n){ return Number(n).toLocaleString("ko-KR")+"원"; }
 function ageOf(birthYear){ return THIS_YEAR - Number(birthYear); }
+/* CHG-56: 공공데이터 원문(강좌 소개·강사명 등)에 "&gt;" "&amp;" 같은 HTML 엔티티가
+   이미 리터럴 텍스트로 들어있는 경우가 있다. 그대로 esc()로 다시 이스케이프하면
+   "&amp;gt;"처럼 이중으로 인코딩돼 화면에 "&gt;" 글자가 그대로 보이는 오타처럼 나타난다.
+   화면에 찍기 전에 한 번 풀어준 뒤 다시 이스케이프해서, 데이터가 언제 만들어졌든(옛 파일·
+   캐시 포함) 항상 올바른 문자로 보이게 한다. */
+function unescHtml(s){
+  s=String(s==null?"":s);
+  if(s.indexOf("&")===-1) return s;
+  return s.replace(/&nbsp;/g," ").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'")
+          .replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&amp;/g,"&");
+}
 function esc(s){
-  return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return unescHtml(s).replace(/[&<>"']/g,function(c){
     return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];
   });
 }
@@ -1937,17 +1948,17 @@ function buildNationCourses(courses, facils, coord){
     var xy=coord[f.name]||null;
     out.push({
       id:"N"+(n++), code:f.code, facility:f.name,
-      name:(c.name||f.name||"강좌").replace(/&amp;/g,"&"),
-      sport:c.sport||"기타종목",
+      name:unescHtml(c.name||f.name||"강좌"),
+      sport:unescHtml(c.sport||"기타종목"),
       days:decodeDays(c.wd), slot:slotOf(c.start),
       fee:(Number(c.fee)>0?Number(c.fee):null),
       tel:f.tel||"정보없음",
       /* CHG-53: 공식 등록시설·등록강좌 API 원문의 대표자명/강사명/강좌 상세설명도 그대로 담는다 */
-      pres:f.pres||"", gbn:f.gbn||"",
-      instr:(c.instr||"").replace(/&amp;/g,"&"),
-      desc:(c.desc||"").replace(/&amp;/g,"&"),
+      pres:unescHtml(f.pres||""), gbn:f.gbn||"",
+      instr:unescHtml(c.instr||""),
+      desc:unescHtml(c.desc||""),
       lat:xy?xy[0]:null, lng:xy?xy[1]:null,
-      addr:f.addr||"", dataOrigin:"official"
+      addr:unescHtml(f.addr||""), dataOrigin:"official"
     });
   }
   return out;
@@ -4466,8 +4477,8 @@ App.loadNation=function(force){
     return fetchAll(API_FACIL, function(f){
       /* CHG-53: 등록시설 정보 API 원문에 대표자명(pres_nm)·대표자전화번호(res_telno)·
          시설구분명(facil_gbn_nm)도 들어있어 함께 가져온다 (공식 조회 화면과 동일 정보) */
-      return { brno:f.brno||"", name:(f.facil_nm||"").trim(), code:f.local_cd||"", addr:f.road_addr||f.faci_daddr||"",
-               pres:(f.pres_nm||"").trim(), tel:(f.res_telno||"").trim(), gbn:(f.facil_gbn_nm||"").trim() };
+      return { brno:f.brno||"", name:unescHtml((f.facil_nm||"").trim()), code:f.local_cd||"", addr:unescHtml((f.road_addr||f.faci_daddr||"").trim()),
+               pres:unescHtml((f.pres_nm||"").trim()), tel:(f.res_telno||"").trim(), gbn:unescHtml((f.facil_gbn_nm||"").trim()) };
     }, function(got,total){
       state.nation.done=got; state.nation.total=total;
       state.nation.msg="시설 정보 "+got.toLocaleString()+" / "+Number(total).toLocaleString();
@@ -4477,9 +4488,9 @@ App.loadNation=function(force){
       state.nation.done=0; state.nation.total=0; state.nation.msg="강좌 정보를 받는 중"; render();
       return fetchAll(API_COURSE, function(c){
         /* CHG-53: 등록강좌 정보 API 원문의 강사명(lectr_nm)·강좌 상세설명(course_seta_desc_cn)도 함께 가져온다 */
-        return { brno:c.brno||"", name:(c.course_nm||"").trim(), sport:c.item_nm||"",
+        return { brno:c.brno||"", name:unescHtml((c.course_nm||"").trim()), sport:unescHtml(c.item_nm||""),
                  fee:c.settl_amt, wd:c.lectr_weekday_val, start:c.start_tm,
-                 instr:(c.lectr_nm||"").trim(), desc:(c.course_seta_desc_cn||"").trim() };
+                 instr:unescHtml((c.lectr_nm||"").trim()), desc:unescHtml((c.course_seta_desc_cn||"").trim()) };
       }, function(got,total){
         state.nation.done=got; state.nation.total=total;
         state.nation.msg="강좌 정보 "+got.toLocaleString()+" / "+Number(total).toLocaleString();
