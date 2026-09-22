@@ -1876,7 +1876,11 @@ function buildNationCourses(courses, facils, coord){
       sport:c.sport||"기타종목",
       days:decodeDays(c.wd), slot:slotOf(c.start),
       fee:(Number(c.fee)>0?Number(c.fee):null),
-      tel:"정보없음",
+      tel:f.tel||"정보없음",
+      /* CHG-53: 공식 등록시설·등록강좌 API 원문의 대표자명/강사명/강좌 상세설명도 그대로 담는다 */
+      pres:f.pres||"", gbn:f.gbn||"",
+      instr:(c.instr||"").replace(/&amp;/g,"&"),
+      desc:(c.desc||"").replace(/&amp;/g,"&"),
       lat:xy?xy[0]:null, lng:xy?xy[1]:null,
       addr:f.addr||"", dataOrigin:"official"
     });
@@ -2793,9 +2797,12 @@ function detailHTML(c){
     '</div>'+
     moneyBlock+
     '<div class="facts">'+
-      '<div class="fact"><div class="k">시설명</div><div class="v">'+esc(c.facility)+'</div></div>'+
+      '<div class="fact"><div class="k">시설명</div><div class="v">'+esc(c.facility)+(c.gbn?' <span class="chip c-gray">'+esc(c.gbn)+'</span>':'')+'</div></div>'+
       '<div class="fact"><div class="k">시설종목</div><div class="v">'+esc(c.sport)+'</div></div>'+
       '<div class="fact"><div class="k">주소</div><div class="v">'+esc(c.addr||"정보없음")+'</div></div>'+
+      (c.pres?'<div class="fact"><div class="k">대표자</div><div class="v">'+esc(c.pres)+'</div></div>':'')+
+      (c.instr?'<div class="fact"><div class="k">강사</div><div class="v">'+esc(c.instr)+'</div></div>':'')+
+      (c.desc?'<div class="fact"><div class="k">강좌 소개</div><div class="v">'+esc(c.desc)+'</div></div>':'')+
       rankLine+
       /* CHG-25: 셔틀 운영 여부(시연용 값 — hasShuttle() 주석 참고) */
       '<div class="fact"><div class="k">셔틀</div><div class="v">'+
@@ -4218,7 +4225,10 @@ App.loadNation=function(force){
     state.nation.source="api";
     state.nation.msg="시설 정보를 받는 중"; render();
     return fetchAll(API_FACIL, function(f){
-      return { brno:f.brno||"", name:(f.facil_nm||"").trim(), code:f.local_cd||"", addr:f.road_addr||f.faci_daddr||"" };
+      /* CHG-53: 등록시설 정보 API 원문에 대표자명(pres_nm)·대표자전화번호(res_telno)·
+         시설구분명(facil_gbn_nm)도 들어있어 함께 가져온다 (공식 조회 화면과 동일 정보) */
+      return { brno:f.brno||"", name:(f.facil_nm||"").trim(), code:f.local_cd||"", addr:f.road_addr||f.faci_daddr||"",
+               pres:(f.pres_nm||"").trim(), tel:(f.res_telno||"").trim(), gbn:(f.facil_gbn_nm||"").trim() };
     }, function(got,total){
       state.nation.done=got; state.nation.total=total;
       state.nation.msg="시설 정보 "+got.toLocaleString()+" / "+Number(total).toLocaleString();
@@ -4227,8 +4237,10 @@ App.loadNation=function(force){
       facils=fs;
       state.nation.done=0; state.nation.total=0; state.nation.msg="강좌 정보를 받는 중"; render();
       return fetchAll(API_COURSE, function(c){
+        /* CHG-53: 등록강좌 정보 API 원문의 강사명(lectr_nm)·강좌 상세설명(course_seta_desc_cn)도 함께 가져온다 */
         return { brno:c.brno||"", name:(c.course_nm||"").trim(), sport:c.item_nm||"",
-                 fee:c.settl_amt, wd:c.lectr_weekday_val, start:c.start_tm };
+                 fee:c.settl_amt, wd:c.lectr_weekday_val, start:c.start_tm,
+                 instr:(c.lectr_nm||"").trim(), desc:(c.course_seta_desc_cn||"").trim() };
       }, function(got,total){
         state.nation.done=got; state.nation.total=total;
         state.nation.msg="강좌 정보 "+got.toLocaleString()+" / "+Number(total).toLocaleString();
