@@ -4176,7 +4176,7 @@ function adminHTML(){
    끝나서 API 를 67번 부르는 것보다 훨씬 빠릅니다(압축 전송 기준 1MB 남짓).
    파일이 없으면(404) 조용히 오픈API 경로로 넘어갑니다. */
 var NATION_FILE="./data/nation.json";
-var NATION_FILE_GZ="./data/nation.json.gz";
+var NATION_FILE_GZ="./data/nation_data.json.gz";
 /* CHG-53: 전국 데이터 파일이 대표자명/강사명/강좌 소개까지 담으면서 용량이 커져
    GitHub 웹 업로드 한도(25MB)를 넘길 수 있다. gzip으로 압축한 nation.json.gz를
    먼저 찾아보고(좌표 사전과 같은 방식), 없으면 예전처럼 압축 안 된 nation.json을 본다. */
