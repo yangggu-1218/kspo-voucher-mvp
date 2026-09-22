@@ -4176,10 +4176,28 @@ function adminHTML(){
    끝나서 API 를 67번 부르는 것보다 훨씬 빠릅니다(압축 전송 기준 1MB 남짓).
    파일이 없으면(404) 조용히 오픈API 경로로 넘어갑니다. */
 var NATION_FILE="./data/nation.json";
+var NATION_FILE_GZ="./data/nation.json.gz";
+/* CHG-53: 전국 데이터 파일이 대표자명/강사명/강좌 소개까지 담으면서 용량이 커져
+   GitHub 웹 업로드 한도(25MB)를 넘길 수 있다. gzip으로 압축한 nation.json.gz를
+   먼저 찾아보고(좌표 사전과 같은 방식), 없으면 예전처럼 압축 안 된 nation.json을 본다. */
+function tryNationFileGz(){
+  if(typeof DecompressionStream==="undefined") return Promise.resolve(null);
+  return fetch(NATION_FILE_GZ, {cache:"no-cache"}).then(function(r){
+    if(!r.ok || !r.body) return null;
+    var stream=r.body.pipeThrough(new DecompressionStream("gzip"));
+    return new Response(stream).text();
+  }).then(function(txt){
+    if(!txt) return null;
+    return JSON.parse(txt);
+  }).catch(function(){ return null; });
+}
 function tryNationFile(){
-  return fetch(NATION_FILE, {cache:"no-cache"}).then(function(r){
-    if(!r.ok) return null;
-    return r.json();
+  return tryNationFileGz().then(function(j){
+    if(j) return j;
+    return fetch(NATION_FILE, {cache:"no-cache"}).then(function(r){
+      if(!r.ok) return null;
+      return r.json();
+    });
   }).then(function(j){
     if(!j) return null;
     var list = Array.isArray(j) ? j : j.courses;
@@ -4278,13 +4296,30 @@ App.exportNation=function(){
       count:COURSES.length,
       courses:COURSES
     };
-    var blob=new Blob([JSON.stringify(payload)],{type:"application/json"});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement("a");
-    a.href=url; a.download="nation.json";
-    document.body.appendChild(a); a.click();
-    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },1000);
-    App.toast("nation.json 을 내려받았어요 — data/ 폴더에 올려주세요");
+    var json=JSON.stringify(payload);
+    function download(blob, name){
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement("a");
+      a.href=url; a.download=name;
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },1000);
+    }
+    /* CHG-53: 대표자명·강사명·강좌 소개가 더해지며 용량이 커져 GitHub 웹 업로드
+       한도(25MB)를 넘을 수 있다. gzip이 되면 .gz로, 안 되면 예전처럼 평문으로 받는다. */
+    if(typeof CompressionStream!=="undefined"){
+      var cs=new CompressionStream("gzip");
+      var stream=new Blob([json]).stream().pipeThrough(cs);
+      new Response(stream).blob().then(function(gz){
+        download(gz,"nation.json.gz");
+        App.toast("nation.json.gz 를 내려받았어요 — data/ 폴더에 올려주세요 (25MB 넘으면 이 파일을 쓰세요)");
+      }).catch(function(){
+        download(new Blob([json],{type:"application/json"}),"nation.json");
+        App.toast("nation.json 을 내려받았어요 — data/ 폴더에 올려주세요");
+      });
+    } else {
+      download(new Blob([json],{type:"application/json"}),"nation.json");
+      App.toast("nation.json 을 내려받았어요 — data/ 폴더에 올려주세요");
+    }
   }catch(e){
     console.error("[export] 실패:", e);
     App.toast("내보내기에 실패했어요");
