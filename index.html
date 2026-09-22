@@ -213,6 +213,57 @@ ul{margin:0;padding-left:18px}
 .tile-a{font-size:14px;font-weight:700;color:var(--navy)}
 .tile-d{font-size:14px;color:var(--muted);line-height:1.6}
 
+/* ---------- CHG-54: 홈 화면 고용24풍 재설계 (검색 히어로 + 통계 카드 + 정보 그리드) ---------- */
+.hero-srch{padding:52px 0 36px;text-align:center}
+.hero-srch .eyebrow{display:block;text-align:center}
+.hero-srch h1{font-size:clamp(26px,4.4vw,38px);line-height:1.3;margin:10px 0 26px}
+.hero-srch h1 .hl{color:var(--orange)}
+.srch-bar{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:0;background:#fff;border:2px solid var(--navy);border-radius:99px;padding:6px 8px 6px 18px;box-shadow:var(--shadow)}
+.srch-sel{border:0;background:none;font-size:15px;font-weight:700;color:var(--ink-2);padding-right:10px;border-right:1px solid var(--line);cursor:pointer}
+.srch-inp{flex:1;border:0;background:none;font-size:15px;padding:10px 12px;color:var(--muted);cursor:pointer;text-align:left}
+.srch-go{flex:none;width:40px;height:40px;border-radius:50%;background:var(--navy);color:#fff;border:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.srch-go:hover{background:var(--navy-d)}
+.cat-tabs{max-width:640px;margin:16px auto 0;display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+.cat-tabs button{padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:14px;font-weight:700;color:var(--ink-2);cursor:pointer}
+.cat-tabs button[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+.icon-nav-row{margin-top:34px;display:flex;align-items:center;justify-content:center;gap:14px}
+.icon-nav{display:flex;gap:20px;overflow-x:auto;padding:4px 2px;scrollbar-width:none;max-width:100%}
+.icon-nav::-webkit-scrollbar{display:none}
+.icon-nav-btn{flex:none;width:104px;display:flex;flex-direction:column;align-items:center;gap:10px;background:none;border:0;cursor:pointer;padding:2px}
+.icon-nav-circ{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--navy) 0%,var(--orange) 100%);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);transition:transform .15s}
+.icon-nav-btn:hover .icon-nav-circ{transform:translateY(-3px) scale(1.04)}
+.icon-nav-btn span.lbl{font-size:13px;font-weight:700;color:var(--ink-2)}
+.stat-2col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:720px){.stat-2col{grid-template-columns:1fr}}
+.stat-card{padding:26px 26px 10px}
+.stat-h{display:flex;align-items:center;justify-content:space-between;font-size:16px;font-weight:800;color:var(--ink-2);cursor:pointer}
+.stat-n{margin-top:10px;font-size:34px;font-weight:800;color:var(--navy)}
+.stat-n .stat-u{font-size:18px;font-weight:700;margin-left:2px}
+.stat-n.skel{color:transparent;background:var(--bg-2);border-radius:8px;display:inline-block;width:140px;height:34px;animation:pulse 1.3s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.stat-links{list-style:none;margin:14px 0 0;padding-top:10px;border-top:1px solid var(--line-2)}
+.stat-links li+li{border-top:1px solid var(--line-2)}
+.stat-links button{width:100%;text-align:left;background:none;border:0;padding:13px 2px;font-size:14px;color:var(--ink-2);cursor:pointer;display:flex;justify-content:space-between}
+.stat-links button:hover{color:var(--navy)}
+.info5-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+@media(max-width:960px){.info5-grid{grid-template-columns:repeat(2,1fr)}}
+.info-card{background:#fff;border:1px solid var(--line-2);border-radius:12px;padding:20px 18px;text-align:left;cursor:pointer;box-shadow:var(--shadow-xs);transition:transform .15s,box-shadow .15s}
+.info-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-sm);border-color:var(--navy)}
+.info-card .ic-wrap{width:44px;height:44px;border-radius:10px;background:var(--navy-soft);color:var(--navy);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.info-card b{display:block;font-size:16px;font-weight:800;margin-bottom:6px}
+.info-card p{font-size:13px;color:var(--muted);line-height:1.6}
+.guide3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:800px){.guide3-grid{grid-template-columns:1fr}}
+.guide-card{border-radius:14px;padding:24px;text-align:left;cursor:pointer;border:0}
+.guide-card b{display:block;font-size:17px;font-weight:800;margin-bottom:8px}
+.guide-card p{font-size:14px;color:var(--ink-2);line-height:1.6}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:36px}
+@media(max-width:800px){.two-col{grid-template-columns:1fr}}
+.notice-list{list-style:none;margin:0;padding:0}
+.notice-list li{display:flex;justify-content:space-between;gap:10px;padding:13px 0;border-bottom:1px solid var(--line-2);font-size:14px}
+.notice-list li b{font-weight:600;color:var(--ink)}
+.notice-list li span{color:var(--muted);font-size:12px;flex:none}
+
 /* ---------- quiz ---------- */
 .quiz{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:44px 20px 72px;background:var(--bg-2)}
 .qcard{width:100%;max-width:660px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px;box-shadow:var(--shadow)}
@@ -1454,7 +1505,16 @@ function icon(name, size){
     tag:'<path d="M20 12.4L11.6 20.8a1.4 1.4 0 0 1-2 0L3.2 14.4a1.4 1.4 0 0 1 0-2L11.6 4h6.9a1.5 1.5 0 0 1 1.5 1.5v6.9z"/><circle cx="15.5" cy="8.5" r="1.4"/>',
     /* CHG-25 셔틀(버스) */
     bus:'<rect x="4" y="3.5" width="16" height="13" rx="2.5"/><path d="M4 10h16M8 16.5v2.5M16 16.5v2.5"/>'+
-        '<circle cx="8.2" cy="13.3" r=".9"/><circle cx="15.8" cy="13.3" r=".9"/>'
+        '<circle cx="8.2" cy="13.3" r=".9"/><circle cx="15.8" cy="13.3" r=".9"/>',
+    /* CHG-54 홈 화면 아이콘 서클/정보 카드용 */
+    doc:'<path d="M6 3.5h9l3 3v14H6z"/><path d="M15 3.5v3h3M9 11h6M9 14.5h6M9 17.5h4"/>',
+    calc:'<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M7.5 7.5h9M7.5 11h2.2M12 11h2.2M16.4 11h0M7.5 14.4h2.2M12 14.4h2.2M16.4 14.4v3.1M7.5 17.8h2.2M12 17.8h2.2"/>',
+    rank:'<path d="M12 2.5l2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.9-5.3 2.9 1-6-4.4-4.2 6-.9z"/>',
+    gear:'<circle cx="12" cy="12" r="3.3"/><path d="M12 3.5v2.4M12 18.1v2.4M4.6 8.2l2.1 1.2M17.3 14.6l2.1 1.2M4.6 15.8l2.1-1.2M17.3 9.4l2.1-1.2M2.5 12h2.4M19.1 12h2.4"/>',
+    heart:'<path d="M12 20.2S3.8 15 3.8 9.3A4.6 4.6 0 0 1 12 6.5a4.6 4.6 0 0 1 8.2 2.8C20.2 15 12 20.2 12 20.2z"/>',
+    map:'<path d="M9 4.5L4 6.5v13l5-2 6 2 5-2v-13l-5 2-6-2z"/><path d="M9 4.5v13M15 6.5v13"/>',
+    quiz:'<circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.6a2.8 2.8 0 1 1 4.3 2.4c-.9.6-1.5 1.1-1.5 2.2"/><circle cx="12" cy="17.2" r=".2"/>',
+    book:'<path d="M4 5.2A2.2 2.2 0 0 1 6.2 3H20v16.5H6.2A2.2 2.2 0 0 0 4 21.5z"/><path d="M4 5.2v16.3M8 8h8M8 11.4h8"/>'
   };
   var d = P[name] || P.tag;
   return '<svg class="ic" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" '+
@@ -1651,6 +1711,9 @@ var state={
 
   /* CHG-22 로그인 — session.user 는 이 기기(localStorage)에만, admin 은 탭이 닫히면 만료(sessionStorage) */
   nation:{ status:"idle", done:0, total:0, msg:"", at:null, cached:false, count:0, show:300, source:"" },
+  /* CHG-54: 홈 화면 통계 카드(전국 강좌 수)는 nation_data.json.gz 를 조용히 미리 읽어 실측값을 채운다.
+     App.loadNation() 과는 별개로, 진단·강좌 화면 진입 없이도 홈에서만 가볍게 불러오는 용도. */
+  homeStats:{ courseCount:null, facilCount:null, loading:false, tried:false },
   session:{ user:null, admin:false },
   auth:{ open:false, tab:"user", err:"" }
 };
@@ -2283,35 +2346,136 @@ function homeHTML(){
   var groupA=byIds(["svoucher","dvoucher"]).map(tile).join("");
   var groupB=byIds(["nfa","class","money","online"]).map(tile).join("");
 
+  /* CHG-54: 고용24(work24.go.kr) 홈 구조를 레퍼런스로 재설계.
+     검색 히어로 → 카테고리 탭 → 원형 아이콘 네비 → 실측 통계 2카드 → 정보 5그리드
+     → 이용가이드 3카드 → 기존 혜택 타일(그대로 유지) → 안내/FAQ 2단. 통계는 App.loadHomeStats()가
+     nation_data.json.gz 를 조용히 읽어와 스켈레톤을 실측값으로 교체한다(하드코딩 금지). */
+  function iconNavBtn(ic,label,view){
+    return '<button type="button" class="icon-nav-btn" onclick="App.go('+j(view)+')">'+
+      '<span class="icon-nav-circ">'+icon(ic,26)+'</span><span class="lbl">'+esc(label)+'</span></button>';
+  }
+  var iconNav=[
+    iconNavBtn("quiz","1분 진단","quiz"),
+    iconNavBtn("search","강좌 찾기","courses"),
+    iconNavBtn("tag","종목 찾기","match"),
+    iconNavBtn("heart","내 기록","records"),
+    iconNavBtn("doc","데이터 출처","sources")
+  ].join("");
+
+  function infoCard(ic,title,desc,view){
+    return '<button type="button" class="info-card" onclick="App.go('+j(view)+')">'+
+      '<span class="ic-wrap">'+icon(ic,22)+'</span><b>'+esc(title)+'</b><p>'+esc(desc)+'</p>'+
+    '</button>';
+  }
+  var info5=[
+    infoCard("quiz","진단하기","받을 수 있는 혜택이 뭔지부터 확인하고 싶어요","quiz"),
+    infoCard("search","강좌 찾기","내 지역에서 지금 들을 수 있는 강좌를 찾고 싶어요","courses"),
+    infoCard("tag","종목 찾기","어떤 운동을 배울 수 있는지 종목별로 보고 싶어요","match"),
+    infoCard("heart","내 기록","이번 달 지원금을 얼마나 썼고 남았는지 보고 싶어요","records"),
+    infoCard("doc","데이터 출처","이 정보가 어디서 왔는지, 얼마나 믿을 수 있는지 알고 싶어요","sources")
+  ].join("");
+
+  function guideCard(bg,ic,title,desc,onclick){
+    return '<button type="button" class="card guide-card" style="background:'+bg+'" onclick="'+onclick+'">'+
+      icon(ic,22)+'<b style="margin-top:10px">'+esc(title)+'</b><p>'+esc(desc)+'</p>'+
+    '</button>';
+  }
+  var guide3=
+    guideCard("var(--navy-soft)","map","가까운 시설 찾기","강좌 찾기 화면의 지도에서 내 주변 가맹시설을 바로 확인하세요.","App.go('courses')")+
+    guideCard("var(--orange-soft)","doc","데이터 출처 보기","강좌·시설 정보가 어느 공공데이터에서 왔는지 한눈에 확인하세요.","App.go('sources')")+
+    guideCard("var(--bg-2)","book","자주 묻는 질문","신청 방법, 데이터 실측 여부 등 자주 나오는 질문에 답해요.","document.getElementById('faq').scrollIntoView({behavior:'smooth'})");
+
+  var notices=[
+    ["이 사이트는 국민체육진흥공단과 무관한 비공식 데모예요.","안내"],
+    ["강좌·가맹시설 정보는 공공데이터포털 오픈API 실측값을 바로 불러와요.","데이터"],
+    ["가맹시설 수는 공단이 공개한 가맹시설 정보(KS_SPORTS_VOUCH_FCLTY_INFO) CSV 기준이에요.","데이터"],
+    ["셔틀 운행 여부는 공식 데이터에 없어 이 화면에서는 표시하지 않아요.","안내"]
+  ].map(function(n){ return '<li><b>'+esc(n[0])+'</b><span>'+esc(n[1])+'</span></li>'; }).join("");
+
+  var faqs=[
+    ["스포츠강좌이용권은 누가 받을 수 있나요?","1분 진단에서 나이·구분·지역을 입력하면 바로 확인할 수 있어요."],
+    ["여기 나오는 데이터는 실제 데이터인가요?","강좌·시설·대표자·전화 정보는 공공데이터포털 오픈API 실측값이에요. 시군구별 대상인원 등 일부 통계는 아직 예시이며, 데이터 출처에서 항목별로 확인할 수 있어요."],
+    ["이용권 신청도 여기서 하나요?","아니요. 신청은 국민체육진흥공단 공식 사이트에서 진행돼요. 여기는 내가 받을 수 있는 혜택과 강좌를 미리 확인하는 비공식 도구예요."],
+    ["셔틀버스 운행 여부는 왜 안 나오나요?","공단이 공개하는 가맹시설·강좌 데이터에 셔틀 운행 여부가 포함돼 있지 않아서, 확인되지 않은 값을 표시하지 않아요."]
+  ].map(function(f){ return '<li style="flex-direction:column;align-items:flex-start;gap:4px"><b>Q. '+esc(f[0])+'</b><span style="font-size:13px;color:var(--ink-2)">A. '+esc(f[1])+'</span></li>'; }).join("");
+
   return '<main>'+
-  '<section class="hero"><div class="wrap hero-g">'+
+  '<section class="hero hero-srch"><div class="wrap">'+
     '<div class="hero-mascot-wrap">'+
       '<button type="button" class="hero-mascot-btn mascot-bounce" onclick="App.mascotCheer(this)" aria-label="백호돌이한테 응원 한마디 듣기">'+
         mascotIMG("exercise",132)+
       '</button>'+
       '<span class="mascot-bubble" aria-live="polite"></span>'+
     '</div>'+
-    '<div>'+
-      '<span class="eyebrow">국민체육진흥공단 체육 혜택</span>'+
-      '<h1>받을 수 있는 혜택을 찾고,<br>남김없이 쓰는 법까지.</h1>'+
-      '<p class="sub">공단이 운영하는 체육 혜택을 한곳에서 확인하고, 그중 <b>스포츠강좌이용권</b>은 '+
-      '이번 달 지원금으로 무엇을 얼마에 들을 수 있는지까지 계산해 드려요.</p>'+
-      '<div class="acts">'+
-        '<button type="button" class="btn btn-o" onclick="App.go(\'quiz\')">1분 진단 시작하기</button>'+
-        '<button type="button" class="btn btn-ol" onclick="App.go(\'courses\')">강좌부터 둘러보기</button>'+
-      '</div>'+
+    '<span class="eyebrow">국민체육진흥공단 체육 혜택</span>'+
+    '<h1>나만의 체육 혜택, <span class="hl">이번 달 이용권</span></h1>'+
+    '<div class="srch-bar" onclick="App.go(\'courses\')" role="button" tabindex="0" aria-label="강좌 찾기로 이동">'+
+      '<span class="srch-sel">전체</span>'+
+      '<span class="srch-inp">지역·강좌명·시설명으로 찾아보세요</span>'+
+      '<span class="srch-go">'+icon("search",18)+'</span>'+
     '</div>'+
-    '<div class="card" style="padding:20px">'+
-      '<span class="eyebrow">예시</span>'+
-      '<div style="margin-top:10px">'+gaugeHTML(demoLimit,60000,{label:"유아·초등 기준"})+'</div>'+
-      '<hr class="divider" style="margin:16px 0">'+
-      '<p class="note">60,000원 강좌 하나만 들으면 매달 <b>45,000원</b>이 사라져요.</p>'+
+    '<div class="cat-tabs" role="tablist">'+
+      '<button type="button" role="tab" aria-selected="true" onclick="App.go(\'quiz\')">1분 진단</button>'+
+      '<button type="button" role="tab" aria-selected="false" onclick="App.go(\'courses\')">강좌 찾기</button>'+
+      '<button type="button" role="tab" aria-selected="false" onclick="App.go(\'match\')">종목 찾기</button>'+
+      '<button type="button" role="tab" aria-selected="false" onclick="App.go(\'records\')">내 기록</button>'+
     '</div>'+
+    '<div class="icon-nav-row"><div class="icon-nav">'+iconNav+'</div></div>'+
   '</div></section>'+
 
   '<section class="sec"><div class="wrap">'+
+    '<div class="card" style="display:grid;grid-template-columns:1.1fr .9fr;gap:32px;align-items:center;padding:26px 28px">'+
+      '<div>'+
+        '<span class="eyebrow">예시로 보는 소멸 지원금</span>'+
+        '<h3 style="font-size:20px;font-weight:800;margin:6px 0 10px">받을 수 있는 혜택을 찾고, 남김없이 쓰는 법까지.</h3>'+
+        '<p class="note">공단이 운영하는 체육 혜택을 한곳에서 확인하고, 그중 <b>스포츠강좌이용권</b>은 '+
+        '이번 달 지원금으로 무엇을 얼마에 들을 수 있는지까지 계산해 드려요.</p>'+
+        '<div class="acts" style="margin-top:16px">'+
+          '<button type="button" class="btn btn-o" onclick="App.go(\'quiz\')">1분 진단 시작하기</button>'+
+          '<button type="button" class="btn btn-ol" onclick="App.go(\'courses\')">강좌부터 둘러보기</button>'+
+        '</div>'+
+      '</div>'+
+      '<div>'+gaugeHTML(demoLimit,60000,{label:"유아·초등 기준"})+
+        '<p class="note" style="margin-top:10px">60,000원 강좌 하나만 들으면 매달 <b>45,000원</b>이 사라져요.</p>'+
+      '</div>'+
+    '</div>'+
+  '</div></section>'+
+
+  '<section class="sec" style="padding-top:0"><div class="wrap">'+
+    '<div class="stat-2col">'+
+      '<div class="card stat-card">'+
+        '<div class="stat-h" onclick="App.go(\'courses\')">전국 강좌 수 <span>›</span></div>'+
+        '<div class="stat-n skel" id="stat-course-n">0</div>'+
+        '<ul class="stat-links">'+
+          '<li><button type="button" onclick="App.go(\'match\')">종목별 강좌 찾기 ›</button></li>'+
+          '<li><button type="button" onclick="App.go(\'courses\')">지역별 강좌 찾기 ›</button></li>'+
+          '<li><button type="button" onclick="App.go(\'quiz\')">1분 진단하기 ›</button></li>'+
+        '</ul>'+
+      '</div>'+
+      '<div class="card stat-card">'+
+        '<div class="stat-h" onclick="App.go(\'sources\')">가맹시설 수 <span>›</span></div>'+
+        '<div class="stat-n skel" id="stat-facil-n">0</div>'+
+        '<ul class="stat-links">'+
+          '<li><button type="button" onclick="App.go(\'courses\')">지도에서 내 주변 찾기 ›</button></li>'+
+          '<li><button type="button" onclick="App.go(\'sources\')">데이터 출처 보기 ›</button></li>'+
+          '<li><button type="button" onclick="App.go(\'records\')">내 기록 보기 ›</button></li>'+
+        '</ul>'+
+      '</div>'+
+    '</div>'+
+  '</div></section>'+
+
+  '<section class="sec" style="background:var(--bg-2)"><div class="wrap">'+
+    '<h2 class="sec-t">체육 혜택 정보</h2>'+
+    '<div class="info5-grid">'+info5+'</div>'+
+  '</div></section>'+
+
+  '<section class="sec"><div class="wrap">'+
+    '<h2 class="sec-t">이용가이드</h2>'+
+    '<div class="guide3-grid">'+guide3+'</div>'+
+  '</div></section>'+
+
+  '<section class="sec" style="background:var(--bg-2)"><div class="wrap">'+
     '<h2 class="sec-t">공단에서 받을 수 있는 혜택</h2>'+
-    
     '<div class="grp-h" style="margin-top:6px"><span class="chip c-navy">강좌비 지원</span>'+
       '<h3>이용권 — 돈이 나오는 사업</h3></div>'+
     '<div class="tiles">'+groupA+'</div>'+
@@ -2319,6 +2483,13 @@ function homeHTML(){
       '<h3>한 회원가입으로 이어지는 4개 서비스</h3></div>'+
     '<div class="tiles">'+groupB+'</div>'+
     '<p class="note" style="margin-top:14px">기준일 <span class="mono">'+TODAY+'</span></p>'+
+  '</div></section>'+
+
+  '<section class="sec" id="faq"><div class="wrap">'+
+    '<div class="two-col">'+
+      '<div><div class="grp-h" style="margin-top:0"><h3>안내사항</h3></div><ul class="notice-list">'+notices+'</ul></div>'+
+      '<div><div class="grp-h" style="margin-top:0"><h3>자주 묻는 질문</h3></div><ul class="notice-list">'+faqs+'</ul></div>'+
+    '</div>'+
   '</div></section>'+
   '</main>';
 }
@@ -3263,7 +3434,7 @@ function renderInner(){
     case "privacy": main=privacyHTML(); break;
     case "match": main=matchHTML(); break;
     case "admin": main=adminHTML(); break;
-    default: main=homeHTML();
+    default: main=homeHTML(); App.loadHomeStats();
   }
   var html=(state.route==="admin")
     ? '<div class="gov-bar wrap" style="padding:6px 16px;font-size:12px;color:var(--muted)">국민체육진흥공단 · 스포츠강좌이용권 운영자 화면(공모전 데모)</div>'+main+authModalHTML()
@@ -4206,6 +4377,27 @@ function tryNationFile(){
   }).catch(function(){ return null; });
 }
 
+/* CHG-54: 홈 화면 통계 카드용 — 전국 데이터 파일을 조용히 미리 읽어 강좌 수·가맹시설 수를 채운다.
+   App.loadNation()과 달리 전체 state.nation을 건드리지 않고, DOM 두 자리만 직접 갈아치운다
+   (홈 화면을 벗어나 있어도 안전하도록 매번 엘리먼트 존재를 확인). 실패해도 조용히 스켈레톤 상태로 둔다. */
+App.loadHomeStats=function(){
+  if(state.homeStats.tried) return;
+  state.homeStats.tried=true; state.homeStats.loading=true;
+  tryNationFile().then(function(file){
+    if(!file || !file.list || !file.list.length) return;
+    var facilSet={}; var fc=0;
+    for(var i=0;i<file.list.length;i++){
+      var fn=file.list[i].facility||"";
+      if(fn && !facilSet[fn]){ facilSet[fn]=1; fc++; }
+    }
+    state.homeStats.courseCount=file.list.length;
+    state.homeStats.facilCount=fc;
+    var elC=document.getElementById("stat-course-n");
+    if(elC){ elC.classList.remove("skel"); elC.innerHTML=anum(file.list.length)+'<span class="stat-u">건</span>'; }
+    var elF=document.getElementById("stat-facil-n");
+    if(elF){ elF.classList.remove("skel"); elF.innerHTML=anum(fc)+'<span class="stat-u">곳</span>'; }
+  }).catch(function(){}).then(function(){ state.homeStats.loading=false; });
+};
 App.loadNation=function(force){
   if(state.nation.status==="loading") return;
   state.nation.status="loading";
