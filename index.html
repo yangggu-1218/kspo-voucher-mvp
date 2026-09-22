@@ -1714,6 +1714,8 @@ var state={
   /* CHG-54: 홈 화면 통계 카드(전국 강좌 수)는 nation_data.json.gz 를 조용히 미리 읽어 실측값을 채운다.
      App.loadNation() 과는 별개로, 진단·강좌 화면 진입 없이도 홈에서만 가볍게 불러오는 용도. */
   homeStats:{ courseCount:null, facilCount:null, loading:false, tried:false },
+  /* CHG-55: 종목 찾기 진입 전 지역 확인 창. code는 선택 중인 값(확정 전), open=true면 창이 떠 있음 */
+  matchGate:{ open:false, code:"" },
   session:{ user:null, admin:false },
   auth:{ open:false, tab:"user", err:"" }
 };
@@ -2055,7 +2057,18 @@ function pickedTotal(){ return pickedCourses().reduce(function(s,c){return s+(c.
    ============================================================ */
 
 var App={
-  go:function(r){ state.route=r; state.modal=null; state.filtersOpen=false; render(); window.scrollTo(0,0); },
+  /* CHG-55: 종목 찾기는 지역별로 «우리 동네에 있어요» 판정이 갈리는데, 지금까지는
+     강좌 화면 필터(state.f.code)를 조용히 이어받아 사용자가 무슨 지역 기준인지 모르고 볼 수 있었다.
+     다른 화면에서 막 들어올 때만(=match가 아니었다가 match로 갈 때만) 지역 확인 창을 띄운다. */
+  go:function(r){
+    if(r==="match" && state.route!=="match"){ state.matchGate={ open:true, code:state.f.code }; }
+    state.route=r; state.modal=null; state.filtersOpen=false; render(); window.scrollTo(0,0);
+  },
+  setMatchGateCode:function(code){ state.matchGate.code=code; render(); },
+  confirmMatchGate:function(){
+    if(state.matchGate.code) state.f.code=state.matchGate.code;
+    state.matchGate.open=false; render();
+  },
   toast:function(m){
     state.toast=m; render();
     clearTimeout(App._t); App._t=setTimeout(function(){ state.toast=null; render(); },2000);
@@ -3358,6 +3371,22 @@ function authModalHTML(){
     '</div></div>';
 }
 
+/* ---------- CHG-55: 종목 찾기 지역 확인 창 ---------- */
+function matchGateHTML(){
+  if(state.route!=="match" || !state.matchGate.open) return "";
+  var code=state.matchGate.code||state.f.code;
+  return '<div class="ov" role="dialog" aria-modal="true" aria-label="지역 선택">'+
+    '<div class="mod" style="max-width:420px" onclick="App.stop(event)">'+
+      '<span class="eyebrow">종목 찾기</span>'+
+      '<h2 style="font-size:20px;font-weight:800;margin:6px 0 4px">먼저 지역을 확인해주세요</h2>'+
+      '<p class="note">선택한 지역에 있는 강좌만 «우리 동네에 있어요»로 표시돼요.</p>'+
+      '<select class="sel-f" style="margin-top:16px" onchange="App.setMatchGateCode(this.value)" aria-label="지역">'+
+        regionOptions(code, null)+
+      '</select>'+
+      '<button type="button" class="btn btn-o btn-blk" style="margin-top:16px" onclick="App.confirmMatchGate()">이 지역으로 종목 찾기</button>'+
+      '<button type="button" class="btn btn-g btn-sm btn-blk" style="margin-top:8px" onclick="App.go(\'home\')">처음 화면으로</button>'+
+    '</div></div>';
+}
 function modalHTML(){
   if(!state.modal) return "";
   var b=null; for(var i=0;i<BENEFITS.length;i++) if(BENEFITS[i].id===state.modal) b=BENEFITS[i];
@@ -3438,7 +3467,7 @@ function renderInner(){
   }
   var html=(state.route==="admin")
     ? '<div class="gov-bar wrap" style="padding:6px 16px;font-size:12px;color:var(--muted)">국민체육진흥공단 · 스포츠강좌이용권 운영자 화면(공모전 데모)</div>'+main+authModalHTML()
-    : header()+main+footer()+modalHTML()+advanceModalHTML()+authModalHTML();
+    : header()+main+footer()+modalHTML()+advanceModalHTML()+authModalHTML()+matchGateHTML();
   if(state.toast) html+='<div class="toast" role="status">'+mascotIMG("good",20,"mascot-toast")+esc(state.toast)+'</div>';
   document.getElementById("app").innerHTML=html;
 
