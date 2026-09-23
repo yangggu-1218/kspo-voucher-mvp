@@ -168,6 +168,17 @@ ul{margin:0;padding-left:18px}
 .c-gray{background:var(--bg-2);color:var(--muted)}
 .note{font-size:13px;color:var(--muted);line-height:1.6}
 .src{font-size:12px;color:var(--faint)}
+/* CHG-66(접근성): 장애유형 안내는 장애인 이용권 대상자에게 가장 중요한 줄인데도 가장 옅은
+   .src(12px, 대비 약 3.1:1 — WCAG AA 미달)로 찍히고 있었습니다. 본문 수준 대비로 올립니다. */
+.dv-types{display:block;margin-top:4px;font-size:13px;color:var(--muted);line-height:1.6}
+.dv-cav{color:var(--faint);font-size:12px}
+/* 스크린리더 전용 텍스트 — 화면에는 안 보이지만 낭독은 됩니다 */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* 본문 바로가기 — 키보드 사용자가 Tab 한 번으로 반복 메뉴를 건너뜁니다 */
+.skip{position:absolute;left:-9999px;top:0;z-index:100;background:var(--navy);color:#fff;
+  padding:10px 16px;border-radius:0 0 8px 0;font-weight:700}
+.skip:focus{left:0}
 .divider{height:1px;background:var(--line);border:0;margin:0}
 
 /* ---------- basis bar ---------- */
@@ -626,7 +637,12 @@ table.adm-t tbody tr:hover{background:var(--navy-soft)}
 </style>
 </head>
 <body>
+<!-- CHG-66(접근성): 키보드 사용자가 반복되는 머리말을 건너뛰고 본문으로 바로 갈 수 있게 합니다. -->
+<a class="skip" href="#app" onclick="return App.skipToMain(event)">본문 바로가기</a>
 <div id="app"></div>
+<!-- CHG-66(접근성): 화면 갱신 소식을 스크린리더에 알리는 자리.
+     #app 바깥에 두어야 render()가 innerHTML을 통째로 갈아끼워도 살아남아 낭독이 끊기지 않습니다. -->
+<div id="sr-live" class="sr-only" role="status" aria-live="polite"></div>
 
 <script>
 (function(){
@@ -1572,7 +1588,20 @@ function esc(s){
     return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];
   });
 }
-function j(v){ return esc(JSON.stringify(v)); }
+/* CHG-66(보안): j()가 만드는 값은 인라인 onclick 속성 «안의 JS 문자열 리터럴»로 들어간다.
+   esc()는 CHG-56 때문에 이스케이프 «전에» unescHtml()로 엔티티를 먼저 푸는데, 그러면
+   JSON.stringify 가 붙여둔 따옴표 보호가 사라진다. 공공데이터 원문(가맹시설이 등록한
+   종목명·강좌명)에 «&amp;quot;» 처럼 이중 인코딩된 값이 섞여 있으면
+     적재 시 1차 복원 → JSON.stringify(백슬래시 안 붙음) → esc() 안에서 2차 복원
+   순서로 따옴표가 되살아나 문자열 리터럴을 빠져나가고, 브라우저가 속성을 디코딩할 때
+   임의의 스크립트가 실행된다(재현 확인). 그래서 j()는 unescHtml 을 거치지 않는
+   순수 이스케이프를 쓴다. 화면 텍스트용 esc()는 기존 동작을 그대로 둔다. */
+function escAttr(s){
+  return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+    return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];
+  });
+}
+function j(v){ return escAttr(JSON.stringify(v)); }
 
 /* 히어로 마스코트를 누르면 뜨는 응원 멘트 — 매번 다른 문구가 나오도록 직전 문구는 피합니다 */
 var MASCOT_QUOTES = [
@@ -1735,14 +1764,28 @@ function verdict(price, L){
   return {k:"ok", label:"추가 부담 없음"};
 }
 /* 같은 지역(code) · 같은 종목 안에서 이 강좌가 가격 오름차순 몇 번째인지.
-   전국 가격 범위(G 데이터셋)는 실데이터 연동 전까지 표시하지 않습니다 — 없는 수치를 지어내지 않기 위함. */
-function priceRankInRegion(course, allCourses){
-  var peers=allCourses.filter(function(c){
-    return c.code===course.code && c.sport===course.sport && c.fee!=null;
-  }).sort(function(a,b){ return a.fee-b.fee; });
-  var rank=-1;
-  for(var i=0;i<peers.length;i++) if(peers[i].id===course.id){ rank=i+1; break; }
-  return { rank:rank, total:peers.length };
+   전국 가격 범위(G 데이터셋)는 실데이터 연동 전까지 표시하지 않습니다 — 없는 수치를 지어내지 않기 위함.
+
+   CHG-66(성능): 예전에는 강좌마다 이 함수를 불러 매번 후보 전체를 filter+sort 했습니다.
+   지역을 «지역 전체»로 두고 전국 66,900건을 불러오면 66,900 × 66,900 연산이 되어
+   탭이 30초 넘게 멈췄습니다(실측 재현). 지금은 아래 buildPriceRanks() 로 지역·종목별
+   버킷을 «한 번만» 만들어 순위를 미리 계산합니다 — O(n log n). */
+function buildPriceRanks(courses){
+  var buckets={}, byId={}, i, c, key, arr, k;
+  for(i=0;i<courses.length;i++){
+    c=courses[i];
+    if(c.fee==null) continue;                        /* 가격 미확인 강좌는 순위 대상 아님 */
+    key=c.code+" "+c.sport;                     /* 지역코드 + 종목 (구분자는 데이터에 없는 문자) */
+    if(!Object.prototype.hasOwnProperty.call(buckets,key)) buckets[key]=[];
+    buckets[key].push(c);
+  }
+  for(k in buckets){
+    if(!Object.prototype.hasOwnProperty.call(buckets,k)) continue;
+    arr=buckets[k];
+    arr.sort(function(a,b){ return a.fee-b.fee; });
+    for(i=0;i<arr.length;i++) byId[arr[i].id]={ rank:i+1, total:arr.length };
+  }
+  return byId;
 }
 
 /* v3(수정) — 도보·셔틀 "혼자 갈 수 있어요" 판정은 여전히 범위 제외입니다(요일·시간 데이터 없음).
@@ -1856,7 +1899,11 @@ function readQuery(){
     if(p.get("region")) state.f.code=p.get("region");
     if(p.get("sports")) state.f.sports=p.get("sports").split(",").filter(Boolean);
     if(p.get("days")) state.f.days=p.get("days").split(",").filter(Boolean);
-    if(p.get("shuttle")==="1") state.f.shuttle=true;
+    /* CHG-66: 링크로 공유되는 필터를 화면 필터와 일치시킵니다(예전에는 slots·sort·q·dvOnly가 빠져 있었습니다) */
+    if(p.get("slots")) state.f.slots=p.get("slots").split(",").filter(Boolean);
+    if(p.get("sort")) state.f.sort=p.get("sort");
+    if(p.get("q")) state.f.q=p.get("q");
+    if(p.get("dvonly")==="1") state.f.dvOnly=true;
     if(p.get("months")) state.f.months=Number(p.get("months"))||1;
     if(p.get("verdict")) state.f.verdict=p.get("verdict");
     if(p.get("view")==="courses") state.route="courses";
@@ -1868,7 +1915,10 @@ function shareUrl(){
   p.push("view=courses"); p.push("region="+encodeURIComponent(f.code));
   if(f.sports.length) p.push("sports="+encodeURIComponent(f.sports.join(",")));
   if(f.days.length) p.push("days="+encodeURIComponent(f.days.join(",")));
-  if(f.shuttle) p.push("shuttle=1");
+  if(f.slots.length) p.push("slots="+encodeURIComponent(f.slots.join(",")));
+  if(f.sort!=="fee") p.push("sort="+encodeURIComponent(f.sort));
+  if(f.q) p.push("q="+encodeURIComponent(f.q));
+  if(f.dvOnly) p.push("dvonly=1");
   if(f.months!==1) p.push("months="+f.months);
   if(f.verdict) p.push("verdict="+f.verdict);
   return location.origin+location.pathname+"?"+p.join("&");
@@ -1906,25 +1956,20 @@ function judged(){
    ============================================================ */
 
 /* ============================================================
-   CHG-25 셔틀 운영 여부
-   [데이터 성격 — 반드시 읽어주세요]
-   셔틀 운영 여부는 공단이 공개하는 가맹시설·등록강좌 데이터에 들어 있지 않습니다.
-   아래 값은 «셔틀로 거르기» 기능을 보여주기 위해 만든 시연용 값이며 실제 운영 현황이
-   아닙니다. 실제 시행 전에는 반드시 시설별 실측값으로 교체해야 합니다
-   (교체 지점: hasShuttle() 한 곳만 고치면 됩니다 — SHUTTLE-HOOK).
-
-   Math.random() 을 쓰지 않는 이유: 화면을 다시 그릴 때마다 셔틀 여부가 바뀌면 필터
-   결과가 뒤집히고 테스트도 불가능합니다. 시설명 해시로 고정해 «같은 시설은 언제나
-   같은 답»이 되도록 했고, 결과적으로 전체의 약 40%가 셔틀 운영으로 표시됩니다. */
+   CHG-66 셔틀 운영 여부 — 표시하지 않습니다
+   [왜 지웠는지 — 다시 넣기 전에 반드시 읽어주세요]
+   예전(CHG-25)에는 «셔틀로 거르기» 기능을 보여주려고 시설명 해시로 약 40%에 셔틀을
+   임의 부여하고, 상세 화면에 «운영해요/운영하지 않아요»라고 단정해 적었습니다.
+   그런데 이 앱의 이용자 상당수는 차가 없는 저소득·장애 가정입니다. 셔틀이 있다고 믿고
+   등록했다가 통학이 불가능해지면 그달 지원금이 통째로 소멸합니다. 같은 앱의 FAQ가
+   «셔틀 정보는 공개 데이터에 없어 표시하지 않는다»고 쓰고 있었기 때문에 앱이 스스로
+   모순되기도 했습니다. 그래서 값·필터·목록 배지를 모두 제거하고, 상세에는 «데이터에
+   없으니 시설에 확인하라»는 안내만 남깁니다.
+   실제 셔틀 데이터가 확보되면 c.shuttle 을 채우고 이 자리에 판정 함수를 다시 두세요. */
 function hashStr(s){
   var h=0;
   for(var i=0;i<s.length;i++){ h=((h<<5)-h+s.charCodeAt(i))|0; }
   return Math.abs(h);
-}
-function hasShuttle(c){
-  /* SHUTTLE-HOOK: 실데이터가 생기면 c.shuttle === true 로 바꾸세요 */
-  if(!c||!c.facility) return false;
-  return hashStr(c.facility)%100 < 40;
 }
 
 /* ============================================================
@@ -2078,25 +2123,61 @@ function applyNation(list){
 var DV_FILE="./data/dvoucher.json";
 var DV_MAP=null;   /* {byFacility:{시설명:{d:[장애유형],c:[{nm,sport,wd,st,et,fee}]}}, byNameC:{시설명:{addr,tel,sport,local}}} */
 
+/* CHG-66: 종목이 «기타종목»·«종합체육시설»처럼 뭉뚱그린 값이면 종목이 같다고 볼 수 없습니다.
+   특히 전국 강좌를 만들 때 종목이 비어 있으면 "기타종목"으로 채우는데(buildNationCourses),
+   장애인 등록강좌 쪽에도 "기타종목"이 6,336개 시설 중 829곳에 들어 있어,
+   «데이터가 없다»는 뜻의 값끼리 만나 «같은 종목 등록강좌가 있다»로 승격되던 오탐이 있었습니다. */
+var DV_VAGUE_SPORTS=["기타종목","기타","종합체육시설","종합","일반"];
+function dvVague(s){ return DV_VAGUE_SPORTS.indexOf(String(s||"").trim())>=0; }
+/* 종목 비교: 완전히 같거나, 한쪽이 다른 쪽을 «통째로» 포함할 때만 같은 종목으로 봅니다.
+   (양쪽 모두 두 글자 이상이어야 하고, 뭉뚱그린 값은 처음부터 제외합니다) */
+function dvSameSport(a,b){
+  a=String(a||"").trim(); b=String(b||"").trim();
+  if(!a||!b||dvVague(a)||dvVague(b)) return false;
+  if(a===b) return true;
+  if(a.length<2||b.length<2) return false;
+  return a.indexOf(b)>=0 || b.indexOf(a)>=0;
+}
 function annotateDvoucher(list){
   if(!DV_MAP) return;
+  var byFac=DV_MAP.byFacility||{}, byName=DV_MAP.byNameC||{};
   for(var i=0;i<list.length;i++){
     var c=list[i], key=String(c.facility||"").trim();
-    var e=DV_MAP.byFacility[key];
-    if(e){
-      var sport=String(c.sport||""), hit=null;
+    /* CHG-66: 지난번 조인 결과를 항상 먼저 지웁니다. 예전에는 매칭에 실패해도 옛 값이
+       그대로 남아, 데이터가 갱신되면 사라진 시설에 배지가 계속 붙어 있었습니다. */
+    c.dvoucher=false; c.dvoucherFacility=false; c.dvDspsn=null; c.dvCourses=null; c.dvNote=null;
+    if(!key) continue;                                   /* 시설명이 비면 매칭하지 않습니다 */
+    var e=Object.prototype.hasOwnProperty.call(byFac,key) ? byFac[key] : null;
+    if(e && e.c){
+      var hit=null;
       for(var k=0;k<e.c.length;k++){
-        var cc=e.c[k];
-        if(cc.sport && sport && (sport.indexOf(cc.sport)>=0 || cc.sport.indexOf(sport)>=0)){ hit=cc; break; }
+        if(dvSameSport(c.sport, e.c[k].sport)){ hit=e.c[k]; break; }
       }
       c.dvDspsn=e.d; c.dvCourses=e.c;
-      if(hit){ c.dvoucher=true; c.dvoucherFacility=false; }
-      else { c.dvoucher=false; c.dvoucherFacility=true; }
+      if(hit){ c.dvoucher=true; }
+      else { c.dvoucherFacility=true; }
       continue;
     }
-    var e2=DV_MAP.byNameC[key];
-    if(e2){ c.dvoucher=false; c.dvoucherFacility=true; c.dvDspsn=null; c.dvNote=e2.sport; }
+    var e2=Object.prototype.hasOwnProperty.call(byName,key) ? byName[key] : null;
+    if(e2){ c.dvoucherFacility=true; c.dvNote=e2.sport; }
   }
+}
+/* CHG-66: 원본 장애유형 라벨은 «청각/언어»와 «언어», «지적/자폐»와 «지적»이 함께 들어 있고
+   최빈값이 «기타»입니다. 당사자에게 자기 유형이 두 갈래로 쪼개져 보이거나 «기타»로 불리지
+   않도록, 화면에 찍기 직전에만 겹치는 라벨을 합치고 «기타»를 풀어 씁니다(원본 데이터는 그대로). */
+function dvDspsnLabels(arr){
+  if(!arr||!arr.length) return [];
+  var out=[], seen={};
+  for(var i=0;i<arr.length;i++){
+    var t=String(arr[i]||"").trim();
+    if(!t) continue;
+    if(t==="언어") t="청각/언어";
+    if(t==="지적") t="지적/자폐";
+    if(t==="기타") t="그 밖의 유형";
+    t=t.replace("/","·");
+    if(!seen[t]){ seen[t]=1; out.push(t); }
+  }
+  return out;
 }
 function tryDvoucherFile(){
   return fetch(DV_FILE, {cache:"no-cache"}).then(function(r){
@@ -2109,6 +2190,10 @@ function revertNation(){
   COURSES.length=0;
   for(var i=0;i<COURSES_SEED.length;i++) COURSES.push(COURSES_SEED[i]);
   state.nation.count=COURSES.length;
+  /* CHG-66: 표본으로 되돌린 뒤에도 장애인 이용권 배지가 유지되게 합니다.
+     예전에는 표본 강좌가 한 번도 조인된 적이 없어 배지가 통째로 사라지고,
+     «등록시설만» 필터를 켜면 0건이 됐습니다(전국 데이터 로딩 실패 경로에서도 같은 증상). */
+  if(DV_MAP) annotateDvoucher(COURSES);
 }
 
 
@@ -2150,12 +2235,14 @@ function courseView(){
   var limit=monthlyLimit(a);
   var fkey=regionKey(f.code);
   var regionScoped=COURSES.filter(function(c){ return f.code==="all"||regionKey(c.code)===fkey; });
+  var rankById=buildPriceRanks(regionScoped);        /* CHG-66: 순위는 여기서 한 번만 계산 */
   var list=regionScoped.filter(function(c){
     if(f.sports.length && f.sports.indexOf(c.sport)<0) return false;
     if(f.days.length && !c.days.some(function(d){return f.days.indexOf(d)>=0;})) return false;
     if(f.slots.length && f.slots.indexOf(c.slot)<0) return false;
-    if(f.shuttle && !hasShuttle(c)) return false;   /* CHG-25 */
-    if(f.dvOnly && !c.dvoucher) return false;   /* CHG-65 */
+    /* CHG-66: 장애인 이용권 데이터를 아직 못 받았으면 이 필터를 «적용하지 않는다».
+       예전에는 저장된 dvOnly=true 로 재방문했을 때 데이터가 없어 목록이 영구히 0건이 됐다. */
+    if(f.dvOnly && DV_MAP && !c.dvoucher) return false;
     if(f.q){
       var q=f.q.trim();
       if(q && (c.facility+" "+c.name+" "+c.sport).indexOf(q)<0) return false;
@@ -2165,7 +2252,7 @@ function courseView(){
     var o=Object.assign({},c);
     o._est=estimate(c.fee,limit,f.months);          /* 게이지·조합 추천용 (다개월) */
     o._verdict=verdict(c.fee,limit);                 /* v3 핵심 — 월 단위 3색 판정 */
-    o._rank=priceRankInRegion(c,regionScoped);
+    o._rank=rankById[c.id] || {rank:-1,total:0};
     o._geo = (c.lat!=null && c.lng!=null);            /* 좌표 확인 여부 — 지도엔 이것만 표시 */
     o._dist = (state.geo && o._geo) ? haversineM(state.geo,{lat:c.lat,lng:c.lng}) : null;
     return o;
@@ -2191,10 +2278,9 @@ function courseView(){
 }
 
 function pickedCourses(){
-  return state.picked.map(function(id){
-    for(var i=0;i<COURSES.length;i++) if(COURSES[i].id===id) return COURSES[i];
-    return null;
-  }).filter(Boolean);
+  /* CHG-66: 예전에는 COURSES 만 뒤져서, 전국 데이터를 불러오면 표본에서 담아 둔 강좌가
+     장바구니에서 조용히 사라졌습니다. findCourse() 와 같은 폴백(표본까지 탐색)을 씁니다. */
+  return state.picked.map(function(id){ return findCourse(id); }).filter(Boolean);
 }
 function pickedTotal(){ return pickedCourses().reduce(function(s,c){return s+(c.fee||0);},0); }
 
@@ -2319,7 +2405,9 @@ var App={
       baseYm:TODAY.slice(0,7), months:prev.used, total:prev.total });
     persist();
     state.advModal=null;
-    App.toast(prev.used.length+"개월 지원금 "+won(prev.total)+" 당겨썼어요");
+    /* CHG-66: 예전에는 완료형 과거 문장으로 알려서, 실제로 공식 결제를 하지 않고도
+       당겨쓰기가 끝난 줄 알 수 있었습니다. 이 화면이 하는 일은 계산과 기록뿐임을 분명히 합니다. */
+    App.toast(prev.used.length+"개월치 "+won(prev.total)+" 계산 결과를 기록에 저장했어요. 실제 당겨쓰기는 공식 사이트에서 진행해주세요");
   },
   cancelAdvance:function(id){
     state.advances=state.advances.filter(function(r){ return r.id!==id; });
@@ -2414,6 +2502,11 @@ var App={
   toggleAtt:function(d){
     var id=state.calSel, r=state.rec[id]; if(!r) return;
     if(d>dayCut(state.recYM)) return;
+    /* CHG-66: 운영일이 아닌 날은 출석으로 세지 않습니다. 예전에는 아무 날이나 누를 수 있어
+       월 4회 운영 강좌에 12회 출석이 기록되고 출석률이 240%로 나왔습니다.
+       (자유이용 강좌는 planDates 가 null 이라 이 검사를 건너뜁니다) */
+    var _plan=planDates(recCourse(id), state.recYM);
+    if(_plan && _plan.indexOf(d)<0) return;
     r.attDays=r.attDays||[];
     var i=r.attDays.indexOf(d); if(i>=0) r.attDays.splice(i,1); else { r.attDays.push(d); r.attDays.sort(function(a,b){return a-b;}); }
     persist(); render();
@@ -2427,9 +2520,9 @@ window.App=App;
 
 function govBar(){
   return '<div class="gov-bar"><div class="wrap gov-bar-in">'+
-    /* CHG-26: 강좌·금액은 전부 공공데이터 오픈API 실측값으로 교체됐는데도 «예시 데이터가
-       섞여 있어요» 문구가 남아 있었습니다. 지금 시연값인 항목은 셔틀 하나뿐이라 그것만 밝힙니다. */
-    '<span><b>비공식 데모</b> · 국민체육진흥공단과 무관 · 셔틀 표시는 시연용</span>'+
+    /* CHG-66: 마지막 남아 있던 시연값(셔틀)을 제거해, 이제 화면의 모든 값은 공개 데이터
+       실측값이거나 «확인 필요»로 표시됩니다. 고지 문구도 그에 맞게 줄였습니다. */
+    '<span><b>비공식 데모</b> · 국민체육진흥공단과 무관 · 공식 신청은 공식 사이트에서</span>'+
     '<button type="button" onclick="App.go(\'privacy\')">개인정보 안내</button>'+
   '</div></div>';
 }
@@ -2666,8 +2759,12 @@ function homeHTML(){
     '</div>'+
     '<span class="eyebrow">국민체육진흥공단 체육 혜택</span>'+
     '<h1>나만의 체육 혜택, <span class="hl">이번 달 이용권</span></h1>'+
-    '<p class="hero-sub">받을 수 있는 체육 혜택을 찾고, 이번 달 지원금으로 들을 수 있는 강좌까지 계산해 드려요.</p>'+
-    '<div class="srch-bar" onclick="App.go(\'courses\')" role="button" tabindex="0" aria-label="강좌 찾기로 이동">'+
+    /* CHG-66: 첫 화면에 «누가 대상인지»가 없어, 해당되는 사람도 자기 얘기인 줄 모르고 떠났습니다. */
+    '<p class="hero-sub">기초생활수급·차상위 가구의 만 5~18세, 그리고 등록 장애인은 매달 강좌비를 지원받아요. '+
+      '내가 대상인지 확인하고, 이번 달 지원금으로 들을 수 있는 강좌까지 계산해 드려요.</p>'+
+    /* CHG-66(접근성): Tab으로 닿기만 하고 키보드로는 누를 수 없던 자리라 Enter/Space를 받습니다 */
+    '<div class="srch-bar" onclick="App.go(\'courses\')" role="button" tabindex="0" aria-label="강좌 찾기로 이동"'+
+      ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();App.go(\'courses\')}">'+
       '<span class="srch-sel">전체</span>'+
       '<span class="srch-inp">지역·강좌명·시설명으로 찾아보세요</span>'+
       '<span class="srch-go">'+icon("search",18)+'</span>'+
@@ -2929,7 +3026,10 @@ function mapSectionHTML(v){
   var miniRows = geoCourses.length ? geoCourses.map(function(c){
     var vd=c._verdict, sel=state.detailId===c.id;
     var dotcls = vd.k==="ok"?"ok":vd.k==="left"?"left":vd.k==="pay"?"pay":"none";
-    return '<div class="minirow'+(state.geoHi===c.id||sel?' hi':'')+'" data-cid="'+esc(c.id)+'" onmouseenter="App.hiCourse('+j(c.id)+')" onclick="App.openDetail('+j(c.id)+')" role="button" tabindex="0" aria-expanded="'+sel+'">'+
+    /* CHG-66(접근성): 지도 아래 미니 목록도 키보드로 펼칠 수 있어야 합니다 */
+    return '<div class="minirow'+(state.geoHi===c.id||sel?' hi':'')+'" data-cid="'+esc(c.id)+'" onmouseenter="App.hiCourse('+j(c.id)+')" onclick="App.openDetail('+j(c.id)+')"'+
+      ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();App.openDetail('+j(c.id)+')}"'+
+      ' role="button" tabindex="0" aria-expanded="'+sel+'">'+
       '<i class="dot '+dotcls+'"></i><span class="nm">'+esc(c.name)+'</span>'+
       (c._dist!=null?'<span class="dist mono">'+(c._dist<1000?Math.round(c._dist)+'m':(c._dist/1000).toFixed(1)+'km')+'</span>':'')+
       '<span aria-hidden="true" style="color:var(--muted);transform:rotate('+(sel?90:0)+'deg);transition:transform .15s;flex:none">›</span>'+
@@ -2947,8 +3047,10 @@ function mapSectionHTML(v){
 }
 
 /* ---------- courses ---------- */
+var _lastCourseCounts=null;   /* CHG-66: 스크린리더 안내용 — 방금 그린 목록 건수를 남겨 둔다 */
 function coursesHTML(){
   var v=courseView(), f=state.f, a=state.answers;
+  _lastCourseCounts={ priced:v.priced.length, unpriced:v.unpriced.length };
   var limit=v.limit, tier=resolveTier(a);
   var picks=pickedCourses(), pTotal=pickedTotal();
 
@@ -3001,17 +3103,16 @@ function coursesHTML(){
         var on=f.slots.indexOf(s.id)>=0;
         return '<button type="button" class="chk'+(on?' on':'')+'" onclick="App.toggleArr(\'slots\','+j(s.id)+')" aria-pressed="'+on+'"><span class="box"></span><span>'+esc(s.label)+'</span></button>';
       }).join("")+'</div></div>'+
-    /* CHG-25: 셔틀 운영 시설만 보기 */
-    '<div class="fgrp"><span class="flbl">'+icon("bus",14)+' 이동</span><div class="checks">'+
-      '<button type="button" class="chk'+(f.shuttle?' on':'')+'" onclick="App.toggleFlag(\'shuttle\')" aria-pressed="'+(!!f.shuttle)+'">'+
-        '<span class="box"></span><span>셔틀 운영</span></button>'+
-    '</div></div>'+
-    /* CHG-65: 장애인스포츠강좌이용권 등록강좌만 보기 */
-    '<div class="fgrp"><span class="flbl">♿ 장애인 이용권</span><div class="checks">'+
+    /* CHG-66: «셔틀 운영» 필터 제거 — 근거 데이터가 없어 거를 수 없습니다 */
+    /* CHG-66: 필터 이름을 실제 판정 기준(같은 종목 등록강좌가 있는 «시설»)에 맞추고,
+       불러오기에 실패했을 때 막다른 길이 되지 않도록 «다시 시도» 버튼을 답니다. */
+    '<div class="fgrp"><span class="flbl"><span aria-hidden="true">♿</span> 장애인 이용권</span><div class="checks">'+
       '<button type="button" class="chk'+(f.dvOnly?' on':'')+'" onclick="App.toggleFlag(\'dvOnly\')" aria-pressed="'+(!!f.dvOnly)+'">'+
-        '<span class="box"></span><span>장애인스포츠강좌이용권 등록강좌만</span></button>'+
-      (state.dv.status==="loading"?'<p class="src">장애인 이용권 정보를 불러오는 중…</p>':
-       state.dv.status==="error"?'<p class="src">장애인 이용권 정보를 불러오지 못했어요.</p>':"")+
+        '<span class="box"></span><span>장애인 이용권 등록시설만</span></button>'+
+      (state.dv.status==="loading"?'<p class="src">장애인 이용권 정보를 불러오는 중이에요…</p>':
+       state.dv.status==="error"?'<p class="src">장애인 이용권 정보를 불러오지 못해 지금은 등록시설을 가려낼 수 없어요. '+
+         '<button type="button" class="lnk" onclick="App.retryDvoucher()">다시 시도</button><br>'+
+         '급하면 장애인스포츠강좌이용권 공식 사이트(dvoucher.kspo.or.kr)에서 바로 확인할 수 있어요.</p>':"")+
     '</div></div>'+
     '<div class="fgrp"><span class="flbl">'+icon("won",14)+' 계산 기간</span>'+
       '<select class="sel-f" style="min-height:40px;font-size:14px" onchange="App.setMonths(this.value)" aria-label="계산 기간">'+
@@ -3062,8 +3163,9 @@ function coursesHTML(){
   function badges(c){
     var out=[];
     if(c.fee==null) out.push('<span class="chip c-warn">가격 확인 필요</span>');
-    /* CHG-65: 장애인스포츠강좌이용권 등록강좌로 확인된 강좌만 배지 표시 (시설만 확인된 경우는 상세에서 안내) */
-    if(c.dvoucher) out.push('<span class="chip c-navy">♿ 장애인스포츠강좌이용권</span>');
+    /* CHG-66: 배지 문구를 실제로 확인한 사실(«이 시설에 같은 종목 등록강좌가 있다»)까지만 말하도록 낮춥니다.
+       ♿ 는 장식이라 스크린리더가 «휠체어»를 매 행마다 읽지 않도록 aria-hidden 처리합니다. */
+    if(c.dvoucher) out.push('<span class="chip c-navy"><span aria-hidden="true">♿</span> 장애인 이용권 등록시설</span>');
     if(c.dataOrigin==="official") out.push('<span class="chip c-gray">공식 화면 확인</span>');
     else out.push('<span class="chip c-gray">예시 데이터</span>');
     return '<span class="cbadges">'+out.join("")+'</span>';
@@ -3075,7 +3177,7 @@ function coursesHTML(){
       '<span class="mrow">'+icon("tag",13)+esc(c.sport)+'</span>'+
       '<span class="mrow">'+icon("calendar",13)+esc(c.days.join("·")+"요일")+'</span>'+
       '<span class="mrow">'+icon("clock",13)+esc(SLOT_LABEL[c.slot])+'</span>'+
-      (hasShuttle(c)?'<span class="mrow">'+icon("bus",13)+'셔틀 운영</span>':'');   /* CHG-25 */
+      '';   /* CHG-66: 셔틀 시연값 제거 — 공개 데이터에 없는 정보라 목록에 표시하지 않음 */
     var vd=c._verdict, money;
     if(vd.k==="ok") money='<span class="k">이번 달</span><span class="v mono" style="color:var(--ok)">내 돈 0원</span><span class="s">추가 부담 없음</span>';
     else if(vd.k==="left") money='<span class="k">이번 달</span><span class="v mono" style="color:var(--left)">'+won(vd.left)+' 남음</span><span class="s">지원금이 남아요</span>';
@@ -3115,7 +3217,10 @@ function coursesHTML(){
     }
   } else {
     listHTML='<div class="empty">'+mascotIMG("sad",64)+'<h3>조건에 맞는 강좌가 없어요</h3>'+
-      '<p class="note">요일을 넓히거나 지역을 바꿔서 다시 찾아보세요.</p>'+
+      /* CHG-66: 내 동네에 강좌가 없는 사람에게는 «필터 초기화»가 답이 아닙니다. 공식 창구로 나갈 길을 함께 둡니다. */
+      '<p class="note">요일을 넓히거나 지역을 바꿔서 다시 찾아보세요.<br>'+
+        '이 앱은 공개된 데이터만 보여줘요. 최신 강좌는 공식 사이트에서 한 번 더 확인해주세요.</p>'+
+      '<p style="margin-top:10px"><a href="https://svoucher.kspo.or.kr/course/memberFacilityList.do" target="_blank" rel="noopener noreferrer">공식 사이트에서 강좌 찾기 ↗</a></p>'+
       '<button type="button" class="btn btn-ol btn-sm" style="margin-top:12px" onclick="App.clearFilters()">필터 초기화</button></div>';
   }
 
@@ -3123,8 +3228,7 @@ function coursesHTML(){
   if(f.sports.length) active.push(f.sports.join(", "));
   if(f.days.length) active.push(f.days.join("")+"요일");
   if(f.slots.length) active.push(f.slots.map(function(s){return SLOT_LABEL[s];}).join(", "));
-  if(f.shuttle) active.push("셔틀 운영");
-  if(f.dvOnly) active.push("♿ 장애인스포츠강좌이용권 등록강좌만");
+  if(f.dvOnly) active.push("장애인 이용권 등록시설만");
   if(f.verdict) active.push({ok:"자부담 없는 강좌만",left:"지원금이 남는 강좌",pay:"자부담이 붙는 강좌"}[f.verdict]);
   if(f.q) active.push('"'+f.q+'"');
 
@@ -3132,7 +3236,9 @@ function coursesHTML(){
   '<section class="p3top"><div class="wrap">'+
     '<span class="eyebrow" style="color:#9FB6DF">스포츠강좌이용권 · 심층</span>'+
     '<h1>우리 동네 강좌 찾기</h1>'+
-    '<p>목록에서 바로 초록·파랑·빨강으로 자부담 여부를 보여드려요.</p>'+
+    /* CHG-66(접근성): 색만으로 설명하면 색각 이상·스크린리더 사용자에게는 안내가 되지 않습니다.
+       실제로는 금액 문구도 함께 나오므로, 문구를 사실대로 «금액과 색»으로 고칩니다. */
+    '<p>내가 내는 돈이 얼마인지 목록에서 바로 금액과 색으로 보여드려요.</p>'+
   '</div></section>'+
   '<div class="wrap">'+
     nationBarHTML()+
@@ -3200,20 +3306,31 @@ function detailHTML(c){
   } else {
     moneyBlock='<p class="note" style="margin-top:12px">공개된 가격 정보가 없어 판정할 수 없어요. 시설에 직접 문의해주세요.</p>';
   }
-  /* CHG-65: 장애인스포츠강좌이용권 등록 정보 — 시설·종목까지 확인되면 확정 배지, 시설만 확인되면 "이 시설에서 확인" 안내 */
-  var dvLine = "";
+  /* CHG-66: 이 조인은 «강좌 대 강좌» 대조가 아니라 «시설명이 같고 종목이 같은 등록강좌가 있는가»를
+     본 것입니다. 예전 문구("이 강좌는 등록강좌로 확인돼요")는 실제로 확인한 것보다 더 많이 단언해서,
+     이용권으로 결제되는 줄 알고 갔다가 거절당할 수 있었습니다. 확신 수준을 그대로 문장에 담습니다.
+     장애유형도 «이 강좌»가 아니라 «그 시설 등록강좌 전체»의 합집합이므로 그 점을 분명히 적습니다. */
+  var dvLine = "", dvTypes = dvDspsnLabels(c.dvDspsn);
+  var dvTypeLine = dvTypes.length
+    ? '<br><span class="dv-types">이 시설의 등록강좌들이 지원하는 장애유형: '+esc(dvTypes.join(", "))+
+      ' <span class="dv-cav">(강좌마다 달라요)</span></span>'
+    : '';
   if(c.dvoucher){
-    dvLine='<div class="fact"><div class="k">♿ 장애인스포츠강좌이용권</div><div class="v">이 강좌는 등록강좌로 확인돼요.'+
-      (c.dvDspsn&&c.dvDspsn.length?'<br><span class="src">지원 대상 장애유형: '+esc(c.dvDspsn.join(", "))+'</span>':'')+
+    dvLine='<div class="fact"><div class="k"><span aria-hidden="true">♿</span> 장애인 이용권</div><div class="v">'+
+      '이 시설에 같은 종목(' + esc(c.sport) + ')의 장애인스포츠강좌이용권 <b>등록강좌가 있어요</b>. '+
+      '이 강좌가 바로 그 등록강좌인지는 시설에 확인해주세요.'+dvTypeLine+
     '</div></div>';
   } else if(c.dvoucherFacility){
     var otherSports = c.dvCourses ? c.dvCourses.map(function(x){return x.sport;}).filter(function(v,i,a){return v&&a.indexOf(v)===i;}) : [];
-    dvLine='<div class="fact"><div class="k">♿ 장애인스포츠강좌이용권</div><div class="v">이 시설은 장애인스포츠강좌이용권 등록시설이에요'+
-      (otherSports.length?' (등록된 종목: '+esc(otherSports.join(", "))+')':(c.dvNote?' (등록된 종목: '+esc(c.dvNote)+')':''))+
-      '.<br><span class="src">이 강좌 자체가 장애인 이용권 대상인지는 시설에 확인해주세요.'+
-      (c.dvDspsn&&c.dvDspsn.length?' 지원 대상 장애유형: '+esc(c.dvDspsn.join(", ")):'')+'</span></div></div>';
+    dvLine='<div class="fact"><div class="k"><span aria-hidden="true">♿</span> 장애인 이용권</div><div class="v">'+
+      '이 시설은 장애인스포츠강좌이용권 <b>등록시설</b>이지만, 이 종목('+esc(c.sport)+')의 등록강좌는 확인되지 않았어요.'+
+      (otherSports.length?'<br><span class="src">이 시설이 등록한 종목: '+esc(otherSports.join(", "))+'</span>':(c.dvNote?'<br><span class="src">이 시설이 등록한 종목: '+esc(c.dvNote)+'</span>':''))+
+      dvTypeLine+
+    '</div></div>';
   }
-  var rankLine = (c._rank && c._rank.total>1)
+  /* CHG-66: 가격이 확인되지 않은 강좌는 순위가 -1 로 오는데, 예전에는 그 값을 그대로 찍어
+     «전체 2건 중 -1번째로 저렴해요»가 화면에 나왔습니다. 순위가 있을 때만 보여줍니다. */
+  var rankLine = (c._rank && c._rank.rank>0 && c._rank.total>1)
     ? '<div class="fact"><div class="k">이 지역 '+esc(c.sport)+' 가격 순위</div><div class="v">전체 '+c._rank.total+'건 중 '+c._rank.rank+'번째로 저렴해요'+
         '<br><span class="src">전국 가격 범위는 실데이터 연동 후 표시돼요 (샘플 데이터 단계에서는 지어내지 않아요).</span></div></div>'
     : '';
@@ -3246,18 +3363,17 @@ function detailHTML(c){
       (c.instr?'<div class="fact"><div class="k">강사</div><div class="v">'+esc(c.instr)+'</div></div>':'')+
       (c.desc?'<div class="fact"><div class="k">강좌 소개</div><div class="v">'+esc(c.desc)+'</div></div>':'')+
       rankLine+
-      /* CHG-25: 셔틀 운영 여부(시연용 값 — hasShuttle() 주석 참고) */
+      /* CHG-66: 셔틀 시연값 제거 — 있지도 않은 정보를 단정하던 자리를 정직한 안내로 바꿉니다 */
       '<div class="fact"><div class="k">셔틀</div><div class="v">'+
-        (hasShuttle(c)
-          ? '운영해요. 노선·탑승 위치는 시설에 문의해주세요.'
-          : '운영하지 않아요.')+
+        '공단이 공개한 데이터에 셔틀 운행 정보가 없어요. 시설에 전화로 확인해주세요.'+
         '</div></div>'+
       (c.feeRaw?'<div class="fact"><div class="k">원문 가격 표기</div><div class="v">'+esc(c.feeRaw)+'</div></div>':'')+
       '<div class="fact"><div class="k">전화</div><div class="v"><a href="tel:'+esc(c.tel)+'" class="mono">'+esc(c.tel)+'</a></div></div>'+
       siblingsHTML+
     '</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">'+
-      '<button type="button" class="btn btn-o btn-sm" onclick="App.register('+j(c.id)+')">등록 후 기록하기</button>'+
+      /* CHG-66: «등록 후 기록하기»가 이 앱에서 등록이 되는 것처럼 읽혀 문구를 분명히 합니다 */
+      '<button type="button" class="btn btn-o btn-sm" onclick="App.register('+j(c.id)+')">공식 사이트에서 등록했다면 여기 기록하기</button>'+
       '<a class="btn btn-ol btn-sm" href="https://svoucher.kspo.or.kr/course/memberFacilityList.do" target="_blank" rel="noopener noreferrer">공식 사이트에서 확인 ↗</a>'+
     '</div>'+
     '<p class="src" style="margin-top:10px">'+(c.dataOrigin==="official"?'공식 조회 화면에서 확인한 정보예요.':'시연용 예시 데이터예요.')+'</p>'+
@@ -3640,9 +3756,11 @@ function recordsHTML(){
       (ids.length? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">'+cards+'</div>'+calendarHTML()+planBtn
         : (state.carry? '' : empty))+
       recBlock+
-      (state.advances.length? '<div class="grp-h" style="margin-top:28px"><h3>'+icon("won",16)+' 당겨쓴 지원금</h3></div>'+
+      /* CHG-66: 이 목록은 «실제로 당겨쓴 내역»이 아니라 이 앱에서 세운 계획입니다 */
+      (state.advances.length? '<div class="grp-h" style="margin-top:28px"><h3>'+icon("won",16)+' 당겨쓰기 계획</h3></div>'+
         '<div class="combo-list">'+advRows+'</div>'+
-        '<p class="note" style="margin-top:8px">최대 2개월분까지 당겨쓸 수 있고(연 126만원 한도), 선결제는 금지예요. 결제한 강좌는 1개월 안에 실제로 수강해야 해요.</p>' : "")+
+        '<p class="note" style="margin-top:8px">여기 담긴 건 계산 결과예요. 실제 당겨쓰기는 공식 사이트에서 카드 결제로 진행해주세요. '+
+          '최대 2개월분까지 당겨쓸 수 있고(연 126만원 한도), 선결제는 금지예요. 결제한 강좌는 1개월 안에 실제로 수강해야 해요.</p>' : "")+
       hist+
     '</section>'+
     '<aside class="p4-side">'+
@@ -3693,9 +3811,10 @@ function sourcesHTML(embed){
       '받은 데이터는 이 브라우저에 '+NATION_CACHE_DAYS+'일간 저장해 두고 다시 씁니다. '+
       '불러오기 전에는 손으로 검증한 표본 '+(COURSES_SEED?COURSES_SEED.length:153)+'건으로 동작합니다.</p>'+
     '<h3 style="font-size:16px;font-weight:800;margin:26px 0 8px">셔틀 운영 여부</h3>'+
-    '<p class="note">셔틀 정보는 공단 공개 데이터(가맹시설·등록강좌)에 들어 있지 않아, 현재 화면의 표시는 '+
-      '<b>기능 확인용 시연값</b>입니다. 실제 운영 여부는 시설에 직접 확인해주세요. '+
-      '시설별 실측값을 확보하면 코드 한 곳(<span class="mono">hasShuttle()</span>)만 교체하면 됩니다.</p>'+
+    '<p class="note">셔틀 정보는 공단 공개 데이터(가맹시설·등록강좌)에 들어 있지 않습니다. '+
+      '예전에는 기능 확인용 시연값을 «운영해요/운영하지 않아요»로 표시했지만, 차가 없는 가정이 '+
+      '이 표시를 믿고 등록했다가 통학을 못 하게 될 수 있어 <b>2026-09 표시·필터를 모두 제거</b>했습니다. '+
+      '지금은 강좌 상세에 «데이터에 없으니 시설에 확인해주세요»라고만 안내합니다.</p>'+
     '<h3 style="font-size:16px;font-weight:800;margin:26px 0 8px">신청 시기</h3>'+
     '<div class="tw"><table><thead><tr><th>사업</th><th>신청 시기</th><th>검증</th><th>출처</th></tr></thead><tbody>'+periods+'</tbody></table></div>'+
     '<h3 style="font-size:16px;font-weight:800;margin:26px 0 8px">중복수혜 관계</h3>'+
@@ -3843,6 +3962,14 @@ function privacyHTML(){
       "거리는 직선거리 기준 추정치입니다.",
       "실제 신청·자격·금액은 반드시 각 사업 공식 채널에서 확인해주세요."
     ])+
+    /* CHG-66(개인정보): 장애 등록 여부·출생연도 같은 민감한 값을 이 기기에 저장하면서도,
+       지우는 버튼은 «화면이 깨졌을 때»에만 있었습니다. 스스로 지울 수 있어야 합니다. */
+    '<h3 style="font-size:16px;font-weight:800;margin:24px 0 8px">저장된 값 지우기</h3>'+
+    '<div class="card" style="padding:16px">'+
+      '<p class="note">진단에서 답한 내용(출생연도·학년·장애 등록 여부·지역)과 내 기록은 이 기기에만 저장돼 있어요. '+
+        '아래 버튼을 누르면 모두 지우고 처음 상태로 돌아갑니다. 되돌릴 수 없어요.</p>'+
+      '<button type="button" class="btn btn-g btn-sm" style="margin-top:12px" onclick="App.hardReset()">이 기기에 저장된 값 모두 지우기</button>'+
+    '</div>'+
     '<p class="note" style="margin-top:20px">문의는 출품팀에게 해주세요. 국민체육진흥공단은 이 서비스와 관련이 없습니다.</p>'+
     '<button type="button" class="btn btn-g btn-sm" style="margin-top:16px" onclick="App.go(\'home\')">← 돌아가기</button>'+
   '</main>';
@@ -3892,7 +4019,7 @@ function advanceModalHTML(){
         '<button type="button" class="lnk" onclick="App.go(\'records\')">내 기록에서 보기</button></p>':'')+
       '<div style="display:flex;gap:8px;margin-top:16px">'+
         '<button type="button" class="btn btn-g btn-sm" onclick="App.closeAdvance()">취소</button>'+
-        '<button type="button" class="btn btn-o btn-sm"'+(prev.total<=0?' disabled':'')+' onclick="App.confirmAdvance()">당겨쓰기 확정</button>'+
+        '<button type="button" class="btn btn-o btn-sm"'+(prev.total<=0?' disabled':'')+' onclick="App.confirmAdvance()">이 계획으로 저장하기</button>'+
       '</div>'+
       '<p class="note" style="margin-top:12px;padding:10px 12px;background:var(--warn-soft);color:var(--warn);border-radius:8px">'+
         '실제로 있는 제도예요 — 월 지원금보다 비싼 강좌를 들을 때 최대 2개월분 지원금을 합산해 결제할 수 있고, 결제 시 자동 적용돼요(연간 한도 126만원, 유·청소년 이용권만 해당). '+
@@ -4039,11 +4166,38 @@ function render(){
     try{ document.getElementById("app").innerHTML=crashHTML(e); }catch(_){}
   }
 }
+/* ============================================================
+   CHG-66(접근성) 포커스·안내 보조
+   render()가 #app 의 innerHTML 을 통째로 갈아끼우기 때문에, 아무것도 하지 않으면
+   ① 필터를 누를 때마다 포커스가 body 로 날아가 스크린리더 커서가 문서 맨 위로 튕기고
+   ② 모달이 열려도 포커스가 뒤 화면에 남아 «창이 열렸다»는 사실이 전달되지 않으며
+   ③ 모달을 닫아도 원래 누르던 버튼으로 돌아오지 않습니다.
+   아래 세 헬퍼가 그 셋을 메웁니다. 요소 참조는 innerHTML 교체와 함께 사라지므로,
+   포커스 복귀는 «그때 그 버튼의 onclick 문자열»을 표식으로 삼아 다시 찾습니다.
+   ============================================================ */
+var _lastRoute=null, _modalWasOpen=false, _returnFocusKey=null, _lastAnnounce="";
+var ROUTE_TITLE={ home:"", quiz:"진단", result:"진단 결과", courses:"강좌 찾기", records:"내 기록",
+                  match:"종목 찾기", privacy:"개인정보 안내", admin:"운영자 화면" };
+var BASE_TITLE="이번 달 이용권 — 국민체육진흥공단 체육 혜택 찾기";
+function announce(msg){
+  if(!msg || msg===_lastAnnounce) return;
+  _lastAnnounce=msg;
+  var el=document.getElementById("sr-live");
+  if(el) el.textContent=msg;
+}
+function modalOpenNow(){
+  return !!(state.auth.open || state.advModal || state.modal || (state.matchGate&&state.matchGate.open));
+}
+function focusKeyOf(el){
+  try{ return (el && el.getAttribute) ? el.getAttribute("onclick") : null; }catch(e){ return null; }
+}
+
 function renderInner(){
   var act=document.activeElement;
   var fk=(act&&act.dataset)?act.dataset.fk:null;
   var pos=null;
   try{ if(fk&&act.selectionStart!=null) pos=act.selectionStart; }catch(e){}
+  var actKey=focusKeyOf(act);          /* CHG-66: 모달을 닫은 뒤 돌아갈 자리 표식 */
 
   var main;
   switch(state.route){
@@ -4072,6 +4226,49 @@ function renderInner(){
       next.focus();
       try{ if(pos!=null&&next.setSelectionRange) next.setSelectionRange(pos,pos); }catch(e){}
     }
+  }
+
+  /* ---- CHG-66(접근성): 포커스 이동과 안내 ---- */
+  var isModal=modalOpenNow();
+  if(isModal && !_modalWasOpen){
+    /* 창이 막 열렸다 — 창 안 첫 컨트롤로 포커스를 옮기고, 돌아갈 자리를 기억해 둔다 */
+    _returnFocusKey=actKey;
+    var mod=document.querySelector(".mod");
+    if(mod){
+      var first=mod.querySelector("input,select,textarea,button,a[href]");
+      try{ (first||mod).focus(); }catch(e){}
+    }
+  } else if(!isModal && _modalWasOpen){
+    /* 창이 닫혔다 — 열기 전에 누르던 버튼을 표식으로 다시 찾아 포커스를 돌려준다 */
+    if(_returnFocusKey){
+      var btns=document.querySelectorAll("#app button,#app a[href]");
+      for(var bi=0;bi<btns.length;bi++){
+        if(focusKeyOf(btns[bi])===_returnFocusKey){ try{ btns[bi].focus(); }catch(e){} break; }
+      }
+    }
+    _returnFocusKey=null;
+  } else if(state.route!==_lastRoute && !isModal){
+    /* 화면이 바뀌었다 — 제목에 포커스를 옮겨야 스크린리더가 새 화면을 처음부터 읽는다 */
+    var h1=document.querySelector("#app h1");
+    if(h1){
+      h1.setAttribute("tabindex","-1");
+      try{ h1.focus({preventScroll:true}); }catch(e){ try{ h1.focus(); }catch(_){} }
+    }
+  }
+  if(state.route!==_lastRoute){
+    _lastRoute=state.route;
+    var t=ROUTE_TITLE[state.route];
+    document.title = t ? (t+" · "+BASE_TITLE) : BASE_TITLE;
+  }
+  _modalWasOpen=isModal;
+
+  /* 토스트·목록 건수처럼 «조용히 바뀌는 값»을 낭독시킨다.
+     건수는 coursesHTML()이 그리면서 남겨둔 값을 그대로 쓴다 — 여기서 courseView()를
+     다시 부르면 전국 데이터에서 같은 계산을 한 번 더 하게 되므로 부르지 않는다. */
+  if(state.toast) announce(state.toast);
+  else if(state.route==="courses" && !isModal && _lastCourseCounts){
+    announce("강좌 "+_lastCourseCounts.priced+"건을 찾았어요"+
+      (_lastCourseCounts.unpriced?", 가격 확인이 필요한 강좌 "+_lastCourseCounts.unpriced+"건":""));
   }
 
   if(state.route==="courses" && state.f.mapMode){
@@ -5058,6 +5255,23 @@ App.ensureDvoucher=function(){
     });
   }).catch(function(){ state.dv.status="error"; render(); return null; });
 };
+/* CHG-66(접근성): «본문 바로가기» — 화면 구조가 라우트마다 달라서 앵커 대신 제목을 직접 찾아 포커스합니다. */
+App.skipToMain=function(e){
+  if(e&&e.preventDefault) e.preventDefault();
+  var h=document.querySelector("#app main h1, #app h1");
+  if(h){
+    h.setAttribute("tabindex","-1");
+    try{ h.focus(); }catch(_){}
+    if(h.scrollIntoView) h.scrollIntoView();
+  }
+  return false;
+};
+/* CHG-66: 한 번 실패하면 세션 내내 «불러오지 못했어요»로 굳어 있었습니다. 사용자가 다시 시도할 길을 냅니다. */
+App.retryDvoucher=function(){
+  state.dv.status="idle";
+  App.ensureDvoucher();
+  render();
+};
 App.loadNation=function(force){
   if(state.nation.status==="loading") return;
   state.nation.status="loading";
@@ -5345,6 +5559,18 @@ App.admLoadCSV=function(input){
 
 var REGION_STATS_SEED = REGION_STATS.map(function(r){ return Object.assign({},r); });
 
+/* CHG-66(접근성): 창이 열려 있는 동안 Tab 이 창 밖으로 새어 나가지 않게 가둡니다.
+   가두지 않으면 스크린리더·키보드 사용자가 창 뒤의 화면 전체를 계속 훑게 됩니다. */
+document.addEventListener("keydown",function(e){
+  if(e.key!=="Tab" || !modalOpenNow()) return;
+  var mod=document.querySelector(".mod"); if(!mod) return;
+  var f=mod.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])');
+  if(!f.length) return;
+  var first=f[0], last=f[f.length-1];
+  if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+  else if(!mod.contains(document.activeElement)){ e.preventDefault(); first.focus(); }
+});
 document.addEventListener("keydown",function(e){
   if(e.key==="Escape"){
     if(state.auth.open){ App.closeAuth(); }
@@ -5359,7 +5585,9 @@ restore();
 checkRollover();
 readQuery();
 render();
-if(state.answers.disability==="있음") App.ensureDvoucher();   /* CHG-65: 이전에 저장해 둔 응답이면 바로 준비 */
+/* CHG-65/66: 이전 방문에서 저장된 응답이나 필터가 장애인 이용권 데이터를 필요로 하면 미리 받아 둡니다.
+   특히 f.dvOnly 가 저장된 채로 다시 들어오면, 데이터를 안 받으면 목록이 영영 0건이 됩니다. */
+if(state.answers.disability==="있음" || state.f.dvOnly) App.ensureDvoucher();
 
 /* CHG-27: 지난번에 받아 둔 전국 데이터가 있으면 조용히 되살립니다(네트워크 호출 없음).
    없으면 아무 일도 하지 않고 표본 데이터로 동작합니다. */
