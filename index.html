@@ -2875,13 +2875,17 @@ function mapSectionHTML(v){
   var geoCourses=v.all.filter(function(c){ return c._geo; });
   var nogeoCount=v.all.length-geoCourses.length;
 
+  /* CHG-64: 지도 아래 미니 목록에서 강좌를 눌러도 세부 정보(강좌명·시설명·전화·셔틀 등)가
+     보이지 않던 문제 — 목록 뷰의 detailHTML(c)를 그대로 재사용해 선택한 행 아래에 펼친다. */
   var miniRows = geoCourses.length ? geoCourses.map(function(c){
-    var vd=c._verdict;
+    var vd=c._verdict, sel=state.detailId===c.id;
     var dotcls = vd.k==="ok"?"ok":vd.k==="left"?"left":vd.k==="pay"?"pay":"none";
-    return '<div class="minirow'+(state.geoHi===c.id?' hi':'')+'" data-cid="'+esc(c.id)+'" onmouseenter="App.hiCourse('+j(c.id)+')" onclick="App.openDetail('+j(c.id)+')">'+
+    return '<div class="minirow'+(state.geoHi===c.id||sel?' hi':'')+'" data-cid="'+esc(c.id)+'" onmouseenter="App.hiCourse('+j(c.id)+')" onclick="App.openDetail('+j(c.id)+')" role="button" tabindex="0" aria-expanded="'+sel+'">'+
       '<i class="dot '+dotcls+'"></i><span class="nm">'+esc(c.name)+'</span>'+
       (c._dist!=null?'<span class="dist mono">'+(c._dist<1000?Math.round(c._dist)+'m':(c._dist/1000).toFixed(1)+'km')+'</span>':'')+
-    '</div>';
+      '<span aria-hidden="true" style="color:var(--muted);transform:rotate('+(sel?90:0)+'deg);transition:transform .15s;flex:none">›</span>'+
+    '</div>'+
+    (sel? detailHTML(c) : '');
   }).join("") : '<p class="nogeo">'+(f.mapMode&&state.geo?'설정한 반경 안에 좌표가 확인된 강좌가 없어요. 반경을 넓혀보세요.':'이 조건에서 좌표가 확인된 강좌가 없어요.')+'</p>';
 
   return geobar+
