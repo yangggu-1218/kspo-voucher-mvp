@@ -13,7 +13,7 @@
      3) [플랫폼 > Web] 에 배포 도메인(예: https://voucher-demo.example.com) 등록 — 등록 안 하면 지도가 안 뜹니다
      4) 아래 012891db6349c1458bad674953df5233 를 발급받은 키로 교체
      오프라인이거나 키 미설정이면 지도 자리에 안내 문구가 뜨고 목록은 정상 동작합니다(App._mapFallback). -->
-<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=012891db6349c1458bad674953df5233&libraries=services,clusterer&autoload=false" defer></script>
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=012891db6349c1458bad674953df5233&libraries=services,clusterer&autoload=false" defer></script>
 <style>
 /* ============================================================
    이번 달 이용권 v2
@@ -88,18 +88,18 @@ ul{margin:0;padding-left:18px}
 .hd{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .hd-in{display:flex;align-items:center;gap:12px;height:64px}
 .logo{display:flex;align-items:center;gap:9px;background:none;border:0;padding:0;cursor:pointer}
-.logo-mk{width:24px;height:24px;border-radius:7px;flex:none;background:linear-gradient(135deg,var(--navy) 0%,var(--orange) 100%)}
-.logo-tx{font-size:18px;font-weight:800;letter-spacing:-.03em}
+.logo-mk{width:24px;height:24px;border-radius:7px;flex:none;background:var(--orange)}
+.logo-tx{font-size:18px;font-weight:800;letter-spacing:-.03em;white-space:nowrap}
 .mascot{display:block;flex:none;object-fit:contain}
 .mascot-logo{width:32px;height:32px}
 .mascot-bounce{animation:mascotBob 3s ease-in-out infinite}
 @keyframes mascotBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
 .mascot-toast{display:inline-block;vertical-align:-5px;margin-right:6px}
 .nav{display:flex;gap:2px;margin-left:auto}
-.nav button{padding:8px 12px;border:0;background:none;border-radius:8px;font-size:15px;font-weight:600;color:var(--ink-2);cursor:pointer}
+.nav button{padding:8px 12px;border:0;background:none;border-radius:8px;font-size:15px;font-weight:600;color:var(--ink-2);cursor:pointer;white-space:nowrap}
 .nav button:hover{background:var(--bg-2);color:var(--ink)}
 .nav button[aria-current="page"]{background:var(--navy-soft);color:var(--navy)}
-.hd-cta{margin-left:8px}
+.hd-cta{margin-left:8px;white-space:nowrap}
 /* CHG-27 전국 데이터 안내 줄 */
 .map-cap{margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--bg-2);color:var(--muted);font-size:13px;font-weight:600}
 .natbar{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg-2)}
@@ -146,7 +146,7 @@ ul{margin:0;padding-left:18px}
 /* ---------- buttons ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 18px;border:0;border-radius:var(--r);font-size:15px;font-weight:700;cursor:pointer;transition:background .15s,transform .15s,box-shadow .15s}
 .btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-o{background:var(--orange);color:#fff}.btn-o:hover:not(:disabled){background:var(--orange-d);transform:translateY(-1px);box-shadow:0 10px 20px -12px rgba(232,138,0,.6)}
+.btn-o{background:var(--orange);color:#fff}.btn-o:hover:not(:disabled){background:var(--orange-d);transform:translateY(-1px);box-shadow:0 10px 20px -12px rgba(37,110,244,.55)}
 .btn-n{background:var(--navy);color:#fff}.btn-n:hover:not(:disabled){background:var(--navy-d);transform:translateY(-1px);box-shadow:var(--shadow-sm)}
 .btn-g{background:var(--bg-2);color:var(--ink-2)}.btn-g:hover{background:var(--line-2)}
 .btn-ol{background:#fff;color:var(--navy);border:1px solid var(--navy)}.btn-ol:hover{background:var(--navy-soft);transform:translateY(-1px)}
@@ -154,7 +154,7 @@ ul{margin:0;padding-left:18px}
 .btn-blk{width:100%}
 
 /* ---------- generic ---------- */
-.eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:0;color:var(--muted)}
 .sec{padding:44px 0}
 .sec-t{font-size:clamp(22px,3.6vw,30px);font-weight:800;margin-bottom:8px}
 .sec-d{color:var(--muted);font-size:15px;margin-bottom:20px}
@@ -191,10 +191,10 @@ ul{margin:0;padding-left:18px}
 /* ---------- home ---------- */
 .hero{position:relative;overflow:hidden;padding:56px 0 40px;background:linear-gradient(180deg,#F0F7FD 0%,#FFF 100%);border-bottom:1px solid var(--line)}
 .hero::before{content:"";position:absolute;top:-90px;right:-70px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(0,66,136,.14),rgba(0,66,136,0) 70%);pointer-events:none}
-.hero::after{content:"";position:absolute;bottom:-110px;left:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle at 60% 40%,rgba(255,162,0,.16),rgba(255,162,0,0) 70%);pointer-events:none}
+.hero::after{content:"";position:absolute;bottom:-110px;left:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle at 60% 40%,rgba(37,110,244,.08),rgba(37,110,244,0) 70%);pointer-events:none}
 .hero-g{position:relative;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;align-items:center}
 .hero-mascot-wrap{position:fixed;right:18px;bottom:18px;display:inline-block;z-index:90}
-@media(max-width:640px){.hero-mascot-wrap{right:12px;bottom:12px}.hero-mascot-wrap .hero-mascot-btn img{width:96px;height:96px}}
+@media(max-width:640px){.hero-mascot-wrap{right:12px;bottom:12px}.hero-mascot-wrap .hero-mascot-btn img{width:68px;height:68px}}
 .hero-mascot-btn{background:none;border:0;padding:0;cursor:pointer;display:block;border-radius:50%;filter:drop-shadow(0 10px 18px rgba(10,69,141,.18))}
 .hero-mascot-btn:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
 .hero-mascot-btn img{display:block;transition:transform .15s}
@@ -204,7 +204,8 @@ ul{margin:0;padding-left:18px}
 @media(max-width:480px){.mascot-bubble{white-space:normal;max-width:220px}}
 .hero h1{font-size:clamp(30px,5.4vw,46px);line-height:1.24;font-weight:800}
 .hero .sub{margin-top:14px;font-size:17px;color:var(--ink-2);line-height:1.7}
-.hero .acts{margin-top:24px;display:flex;flex-wrap:wrap;gap:10px}
+.hero .acts{margin-top:24px}
+.acts{display:flex;flex-wrap:wrap;gap:10px}
 @media(max-width:860px){.hero-g{grid-template-columns:1fr;gap:28px}}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
 .tile{text-align:left;background:var(--card);border:1px solid var(--line-2);border-radius:12px;padding:18px;cursor:pointer;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow-xs);transition:border-color .15s,transform .15s,box-shadow .15s}
@@ -216,13 +217,15 @@ ul{margin:0;padding-left:18px}
 /* ---------- CHG-54: 홈 화면 고용24풍 재설계 (검색 히어로 + 통계 카드 + 정보 그리드) ---------- */
 .hero-srch{padding:52px 0 36px;text-align:center}
 .hero-srch .eyebrow{display:block;text-align:center}
-.hero-srch h1{font-size:clamp(26px,4.4vw,38px);line-height:1.3;margin:10px 0 26px}
+.hero-srch h1{font-size:clamp(26px,4.4vw,38px);line-height:1.3;margin:8px 0 10px}
+.hero-srch .hero-sub{max-width:560px;margin:0 auto 26px;font-size:16px;color:var(--ink-2);line-height:1.6}
 .hero-srch h1 .hl{color:var(--orange)}
-.srch-bar{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:0;background:#fff;border:2px solid var(--navy);border-radius:99px;padding:6px 8px 6px 18px;box-shadow:var(--shadow)}
+.srch-bar{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:0;background:#fff;border:2px solid var(--orange);border-radius:99px;padding:6px 8px 6px 18px;box-shadow:var(--shadow)}
 .srch-sel{border:0;background:none;font-size:15px;font-weight:700;color:var(--ink-2);padding-right:10px;border-right:1px solid var(--line);cursor:pointer}
-.srch-inp{flex:1;border:0;background:none;font-size:15px;padding:10px 12px;color:var(--muted);cursor:pointer;text-align:left}
-.srch-go{flex:none;width:40px;height:40px;border-radius:50%;background:var(--navy);color:#fff;border:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
-.srch-go:hover{background:var(--navy-d)}
+.srch-inp{flex:1;min-width:0;border:0;background:none;font-size:15px;padding:10px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);cursor:pointer;text-align:left}
+.srch-go{flex:none;width:40px;height:40px;border-radius:50%;background:var(--orange);color:#fff;border:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.srch-go:hover{background:var(--orange-d)}
+.srch-bar{cursor:pointer;transition:box-shadow .15s}.srch-bar:hover{box-shadow:0 0 0 4px var(--orange-soft),var(--shadow)}
 .cat-tabs{max-width:640px;margin:16px auto 0;display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
 .cat-tabs button{padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:14px;font-weight:700;color:var(--ink-2);cursor:pointer}
 .cat-tabs button[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
@@ -230,9 +233,36 @@ ul{margin:0;padding-left:18px}
 .icon-nav{display:flex;gap:20px;overflow-x:auto;padding:4px 2px;scrollbar-width:none;max-width:100%}
 .icon-nav::-webkit-scrollbar{display:none}
 .icon-nav-btn{flex:none;width:104px;display:flex;flex-direction:column;align-items:center;gap:10px;background:none;border:0;cursor:pointer;padding:2px}
-.icon-nav-circ{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--navy) 0%,var(--orange) 100%);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);transition:transform .15s}
-.icon-nav-btn:hover .icon-nav-circ{transform:translateY(-3px) scale(1.04)}
+.icon-nav-circ{width:64px;height:64px;border-radius:50%;background:var(--orange);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -10px rgba(37,110,244,.7);transition:transform .15s,background .15s}
+.icon-nav-btn:hover .icon-nav-circ{transform:translateY(-3px);background:var(--orange-d)}
 .icon-nav-btn span.lbl{font-size:13px;font-weight:700;color:var(--ink-2)}
+@media(max-width:560px){.hero-srch{padding:36px 0 28px}.hero-srch .hero-sub{font-size:15px;margin-bottom:20px}.icon-nav-row{margin-top:24px}.icon-nav{gap:4px;width:100%;justify-content:space-between}.icon-nav-btn{width:64px;gap:6px}.icon-nav-circ{width:48px;height:48px}.icon-nav-circ svg{width:20px;height:20px}.icon-nav-btn span.lbl{font-size:12px;white-space:nowrap}}
+.demo-card{display:grid;grid-template-columns:1.1fr .9fr;gap:32px;align-items:center;padding:26px 28px}
+@media(max-width:760px){.demo-card{grid-template-columns:1fr;gap:22px;padding:22px 20px}}
+/* CHG-62 홈 통계 패널 */
+.sh{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:20px;padding:34px;border-radius:24px;border:1px solid var(--line-2);
+  background:linear-gradient(135deg,#F4F7FF 0%,#FFFFFF 55%,#F6F4FF 100%);box-shadow:var(--shadow)}
+.sh-l{display:flex;flex-direction:column;justify-content:space-between;gap:18px;padding:6px 4px}
+.sh-h{font-size:clamp(22px,2.4vw,29px);line-height:1.42;font-weight:800;letter-spacing:-.03em}
+.sh-h .hl{color:var(--orange)}
+.sh-d{margin-top:10px;font-size:14px;color:var(--muted)}
+.sh-art{max-width:270px}
+.sh-art svg{display:block}
+.sh-c{display:flex;flex-direction:column;padding:26px 22px 22px;border-radius:18px;background:rgba(255,255,255,.86);border:1px solid var(--line-2);box-shadow:var(--shadow-xs)}
+.sh-t{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;font-size:18px;font-weight:800;color:var(--ink);cursor:pointer}
+.sh-t:hover{color:var(--orange)}
+.sh-n{margin:12px 0 24px;font-size:clamp(36px,4.2vw,48px);line-height:1.1;font-weight:800;letter-spacing:-.035em;color:var(--orange);font-variant-numeric:tabular-nums}
+.sh-n .u{font-size:.48em;font-weight:700;margin-left:3px;letter-spacing:0}
+.sh-n.skel{color:transparent;background:var(--bg-2);border-radius:10px;width:190px;animation:pulse 1.3s ease-in-out infinite}
+.sh-na{font-size:15px;font-weight:600;color:var(--faint)}
+.sh-links{list-style:none;margin:auto 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.sh-links button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border-radius:12px;border:1px solid var(--line-2);
+  background:#fff;font-size:15px;font-weight:600;color:var(--ink-2);cursor:pointer;text-align:left;transition:background .15s,color .15s,border-color .15s}
+.sh-links button:hover{background:var(--orange-soft);border-color:transparent;color:var(--orange-d);font-weight:700}
+@media(max-width:1000px){.sh{grid-template-columns:1fr 1fr;padding:26px}.sh-l{grid-column:1/-1;flex-direction:row;align-items:center}.sh-art{width:220px;flex:none}}
+@media(max-width:620px){.sh{grid-template-columns:1fr;padding:20px 16px;gap:14px;border-radius:18px}
+  .sh-l{flex-direction:column;align-items:flex-start;gap:10px}.sh-art{width:190px;align-self:center}
+  .sh-c{padding:20px 18px 18px}.sh-n{margin:8px 0 16px}.sh-links button{padding:12px 14px;font-size:14px}}
 .stat-2col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 @media(max-width:720px){.stat-2col{grid-template-columns:1fr}}
 .stat-card{padding:26px 26px 10px}
@@ -245,7 +275,7 @@ ul{margin:0;padding-left:18px}
 .stat-links li+li{border-top:1px solid var(--line-2)}
 .stat-links button{width:100%;text-align:left;background:none;border:0;padding:13px 2px;font-size:14px;color:var(--ink-2);cursor:pointer;display:flex;justify-content:space-between}
 .stat-links button:hover{color:var(--navy)}
-.info5-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.info5-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 @media(max-width:960px){.info5-grid{grid-template-columns:repeat(2,1fr)}}
 .info-card{background:#fff;border:1px solid var(--line-2);border-radius:12px;padding:20px 18px;text-align:left;cursor:pointer;box-shadow:var(--shadow-xs);transition:transform .15s,box-shadow .15s}
 .info-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-sm);border-color:var(--navy)}
@@ -402,7 +432,7 @@ ul{margin:0;padding-left:18px}
   .cmoney .s{margin-top:0}
 }
 
-.combo{border:1px solid var(--line);border-radius:12px;padding:16px;background:linear-gradient(180deg,#FFF9F2 0%,#FFF 100%);margin-bottom:16px}
+.combo{border:1px solid var(--line);border-radius:12px;padding:16px;background:linear-gradient(180deg,var(--orange-soft) 0%,#FFF 100%);margin-bottom:16px}
 .combo h3{font-size:16px;font-weight:800;margin-bottom:2px}
 .combo-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .combo-item{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:9px}
@@ -429,6 +459,57 @@ ul{margin:0;padding-left:18px}
 .dl .d{font-size:13px;font-weight:700;color:var(--muted)}
 .dl .t{font-size:15px;font-weight:800;margin-top:2px}
 .dl .a{font-size:14px;color:var(--muted)}
+
+/* CHG-60 내 기록 v2 */
+.carry{padding:22px 22px 20px;margin-bottom:18px;border:1.5px solid var(--orange);background:linear-gradient(180deg,var(--orange-soft) 0%,#fff 120px)}
+.carry .chk{background:#fff;border:1px solid var(--line);padding:10px 12px;margin-bottom:6px;border-radius:10px}
+.rc-list{display:flex;flex-direction:column;gap:8px}
+.rc-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.rc-row+.rc-row{margin-top:0}
+.carry .rc-row{margin-bottom:8px}
+.rc-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rc-main b{font-size:15px;font-weight:800}
+.rc-why{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.plan-next{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:14px 16px;border:1px dashed var(--navy);border-radius:12px;background:var(--navy-soft)}
+.plan-next b{font-size:15px}
+.hist{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.hist-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--line-2);font-size:14px}
+.hist-row:last-child{border-bottom:0}
+.rc-how{margin-top:18px;padding:14px 16px;border-radius:12px;background:var(--bg-2);font-size:13px}
+.rc-how ul{margin:8px 0;padding-left:16px;color:var(--ink-2);line-height:1.6}
+.rc-how li+li{margin-top:4px}
+@media(max-width:560px){.rc-row{flex-direction:column;align-items:stretch}.plan-next{flex-direction:column;align-items:stretch}.hist-row{flex-wrap:wrap}}
+
+/* CHG-61 출석 달력 */
+.att-sum{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-weight:600;color:var(--ink-2)}
+.att-bar{height:6px;border-radius:99px;background:var(--line-2);overflow:hidden}
+.att-bar i{display:block;height:100%;background:var(--ok);border-radius:99px}
+.cal{padding:18px 20px;margin-top:14px}
+.cal-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.cal-h h3{font-size:16px;font-weight:800}
+.cal-picks{display:flex;flex-wrap:wrap;gap:6px}
+.cal-pick{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:700;color:var(--ink-2);cursor:pointer}
+.cal-pick i{width:9px;height:9px;border-radius:50%;background:var(--cc)}
+.cal-pick.on{border-color:var(--cc);box-shadow:inset 0 0 0 1px var(--cc);color:var(--ink)}
+.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-w{text-align:center;font-size:12px;font-weight:700;color:var(--muted);padding:4px 0}
+.cal-w.sun,.cal-d.sun .n{color:var(--lost)}
+.cal-d{position:relative;min-height:62px;border:1px solid var(--line-2);border-radius:9px;background:#fff;padding:5px 6px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;cursor:pointer;font:inherit;text-align:left}
+.cal-d.empty{border:0;background:none;cursor:default}
+.cal-d .n{font-size:13px;font-weight:700;color:var(--ink-2)}
+.cal-d.sch{border:1.5px dashed var(--cc)}
+.cal-d.att{background:color-mix(in srgb,var(--cc) 12%,#fff);border:1.5px solid var(--cc)}
+.cal-d.today .n{background:var(--ink);color:#fff;border-radius:99px;padding:0 6px}
+.cal-d.fut{cursor:default;background:var(--bg-2);opacity:.75}
+.cal-d:not(.fut):not(.empty):hover{border-color:var(--cc)}
+.cal-d .dots{display:flex;flex-wrap:wrap;gap:3px;margin-top:auto}
+.cal-d .dots i{width:8px;height:8px;border-radius:50%}
+.cal-d .dots i.f{background:var(--cc)}
+.cal-d .dots i.o{border:1.5px solid var(--cc)}
+.dl-tag{font-size:10px;font-weight:800;color:#fff;border-radius:4px;padding:0 4px;line-height:16px;white-space:nowrap}
+.cal-ups{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line-2);font-size:13px;color:var(--ink-2)}
+.cal-up i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+@media(max-width:560px){.cal{padding:14px 12px}.cal-d{min-height:48px;padding:4px}.cal-d .n{font-size:12px}.dl-tag{font-size:0;width:8px;height:8px;padding:0;line-height:0;border-radius:2px}.cal-d .dots i{width:6px;height:6px}}
 
 /* ---------- tables ---------- */
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
@@ -1716,6 +1797,7 @@ var state={
   f:{ code:"41500", sports:[], days:[], slots:[], verdict:"", months:1, sort:"fee", q:"", mapMode:false, radius:1000, shuttle:false },
   geo:null, geoState:"idle", geoHi:null,   /* geo: {lat,lng} — 이 기기에서만 쓰고 저장·전송하지 않음 */
   detailId:null, picked:[], rec:{},
+  recYM:"", history:[], carry:null, sig:[], calSel:null,   /* CHG-60 월별 기록·이어가기·추천 신호 */
   pref:{ together:"", contact:"", place:"", music:"", water:"" },
   demand:[],
   advModal:null, advPick:1, advances:[],  /* CHG-17: 지원금 당겨쓰기(실제 제도, 최대 2개월) 미리보기 */
@@ -1735,6 +1817,7 @@ function persist(){
   try{
     localStorage.setItem(STORE, JSON.stringify({
       answers:state.answers, rec:state.rec, f:state.f,
+      recYM:state.recYM, history:state.history, carry:state.carry, sig:state.sig,
       pref:state.pref, demand:state.demand, advances:state.advances,
       user:state.session.user
     }));
@@ -1745,7 +1828,11 @@ function restore(){
     var raw=localStorage.getItem(STORE); if(!raw) return;
     var d=JSON.parse(raw);
     if(d.answers) state.answers=Object.assign(state.answers,d.answers);
-    if(d.rec) state.rec=d.rec;
+    if(d.rec){ state.rec=d.rec; Object.keys(state.rec).forEach(function(k){ var r=state.rec[k]; if(!Array.isArray(r.attDays)) r.attDays=[]; delete r.att; }); }
+    if(d.recYM) state.recYM=d.recYM;
+    if(Array.isArray(d.history)) state.history=d.history;
+    if(d.carry && Array.isArray(d.carry.items)) state.carry=d.carry;
+    if(Array.isArray(d.sig)) state.sig=d.sig;
     if(d.f) state.f=Object.assign(state.f,d.f);
     if(d.pref) state.pref=Object.assign(state.pref,d.pref);
     if(Array.isArray(d.demand)) state.demand=d.demand;
@@ -2125,7 +2212,7 @@ var App={
   setQuery:function(v){ state.f.q=v; render(); },
   toggleArr:function(key,v){
     var arr=state.f[key], i=arr.indexOf(v);
-    if(i>=0) arr.splice(i,1); else arr.push(v);
+    if(i>=0) arr.splice(i,1); else { arr.push(v); if(key==="sports") logSport(v); }
     persist(); render();
   },
   toggleFlag:function(key){ state.f[key]=!state.f[key]; persist(); render(); },
@@ -2162,7 +2249,9 @@ var App={
   },
 
   /* 강좌 */
-  openDetail:function(id){ state.detailId=(state.detailId===id?null:id); render(); },
+  openDetail:function(id){ state.detailId=(state.detailId===id?null:id);
+    if(state.detailId){ var c=findCourse(id); if(c) logSport(c.sport); }
+    render(); },
   closeDetail:function(){ state.detailId=null; render(); },
   /* CHG-17: 지원금 당겨쓰기 계산기 */
   openAdvance:function(id){ state.advModal=id; state.advPick=1; render(); },
@@ -2204,19 +2293,20 @@ var App={
     persist(); App.toast(sp+" 요청을 남겼어요");
   },
   seeSport:function(sp){
-    state.f.sports=[sp]; state.route="courses"; persist(); render(); window.scrollTo(0,0);
+    state.f.sports=[sp]; logSport(sp); state.route="courses"; persist(); render(); window.scrollTo(0,0);
   },
 
   /* 기록 — BUG-05 */
   register:function(id){
-    if(!state.rec[id]) state.rec[id]={pay:false,att:false,addedAt:new Date().toISOString()};
+    var c=findCourse(id); if(!c) return;
+    if(!state.rec[id]) state.rec[id]=newRec(c);
     persist(); App.toast("내 기록에 담았어요");
     state.route="records"; render(); window.scrollTo(0,0);
   },
   registerPicked:function(){
     var ids=state.picked.slice();
     if(!ids.length) return;
-    ids.forEach(function(id){ if(!state.rec[id]) state.rec[id]={pay:false,att:false,addedAt:new Date().toISOString()}; });
+    ids.forEach(function(id){ var c=findCourse(id); if(c && !state.rec[id]) state.rec[id]=newRec(c); });
     persist(); App.toast(ids.length+"개 강좌를 담았어요");
     state.route="records"; render(); window.scrollTo(0,0);
   },
@@ -2226,8 +2316,58 @@ var App={
   },
   removeRec:function(id){ delete state.rec[id]; persist(); render(); },
   demoRec:function(){
-    ["i1","i3"].forEach(function(id){ state.rec[id]={pay:false,att:false,addedAt:new Date().toISOString()}; });
+    /* 심사용 예시: 지난달 유도교실(결제·출석) → 이번 달 축구 60,000원(45,000원 소멸) */
+    if(!monthlyLimit(state.answers)) state.answers.tierOverride="child";
+    var c3=findCourse("i3"), c7=findCourse("i7");
+    if(!c3||!c7){ App.toast("예시 강좌를 찾지 못했어요"); return; }
+    state.history=[{ ym:ymAdd(state.recYM,-1), limit:105000, items:[{snap:snapOf(c3),pay:true,attN:18,planN:21}] }];
+    state.rec={}; state.rec[c7.id]=newRec(c7); state.rec[c7.id].pay=true;
+    /* 지난 운영일 중 수요일만 빠진 것으로 — '자주 빠진 요일' 추천이 보이도록 */
+    var pl=planDates(state.rec[c7.id].snap, state.recYM)||[], cut=dayCut(state.recYM);
+    state.rec[c7.id].attDays=pl.filter(function(d){ return d<=cut && WDS[dowOf(state.recYM,d)]!=="수"; });
+    state.sig=[{s:"유도",ym:state.recYM},{s:"태권도",ym:state.recYM}];
+    state.carry=null;
     persist(); App.toast("예시 데이터를 넣었어요"); render();
+  },
+  addRecCourse:function(id){
+    var c=findCourse(id); if(!c) return;
+    if(!state.rec[id]) state.rec[id]=newRec(c);
+    persist(); App.toast(monthLabel(state.recYM)+" 기록에 담았어요"); render();
+  },
+  planNext:function(){
+    var items=Object.keys(state.rec).map(function(id){ var s=recCourse(id), r=state.rec[id]; if(!s) return null;
+      var st=attStats(s, r.attDays, state.recYM); return {snap:s,pay:!!r.pay,attN:st.attended,planN:st.planned}; }).filter(Boolean);
+    if(!items.length) return;
+    state.carry={ from:state.recYM, to:ymAdd(state.recYM,1), auto:false, items:carryFrom(items) };
+    persist(); render();
+  },
+  carryToggle:function(i){ var x=state.carry&&state.carry.items[i]; if(!x) return; x.on=!x.on; persist(); render(); },
+  carryAdd:function(id){
+    var c=findCourse(id); if(!c||!state.carry) return;
+    state.carry.items.push({ snap:snapOf(c), on:true }); persist(); render();
+  },
+  carrySwap:function(id){
+    var c=findCourse(id); if(!c||!state.carry) return;
+    state.carry.items.forEach(function(x){ x.on=false; });
+    state.carry.items.push({ snap:snapOf(c), on:true }); persist(); App.toast("강좌를 바꿨어요"); render();
+  },
+  confirmCarry:function(){
+    var cy=state.carry; if(!cy) return;
+    var chosen=cy.items.filter(function(x){ return x.on; });
+    if(!chosen.length) return;
+    if(!cy.auto){ archiveMonth(); state.recYM=cy.to; state.rec={}; }   /* 자동 이월이면 이번 달에 이미 담은 강좌는 유지 */
+    chosen.forEach(function(x){ if(!state.rec[x.snap.id]) state.rec[x.snap.id]={ pay:false, attDays:[], addedAt:new Date().toISOString(), snap:x.snap }; });
+    state.carry=null; persist();
+    App.toast(monthLabel(state.recYM)+" 강좌 "+chosen.length+"개를 세팅했어요"); render(); window.scrollTo(0,0);
+  },
+  cancelCarry:function(){ state.carry=null; persist(); render(); },
+  selCal:function(id){ state.calSel=id; render(); },
+  toggleAtt:function(d){
+    var id=state.calSel, r=state.rec[id]; if(!r) return;
+    if(d>dayCut(state.recYM)) return;
+    r.attDays=r.attDays||[];
+    var i=r.attDays.indexOf(d); if(i>=0) r.attDays.splice(i,1); else { r.attDays.push(d); r.attDays.sort(function(a,b){return a-b;}); }
+    persist(); render();
   }
 };
 window.App=App;
@@ -2255,7 +2395,7 @@ function header(){
       '<span class="logo-un">비공식</span></button>'+
     '<nav class="nav" aria-label="주요 메뉴">'+
       nb("home","혜택 한눈에")+nb("quiz","내 혜택 진단")+nb("match","종목 찾기")+nb("courses","강좌 찾기")+
-      nb("records","내 기록")+nb("sources","데이터 출처")+
+      nb("records","내 기록")+
     '</nav>'+
     authBarHTML()+
     '<button type="button" class="btn btn-o btn-sm hd-cta" onclick="App.go(\'quiz\')">진단 시작</button>'+
@@ -2354,6 +2494,52 @@ function gaugeHTML(limit, useAmt, opts){
   '</div>';
 }
 
+
+/* CHG-62 홈 통계 패널 (고용24 메인 통계 영역 구성 참고) — 일러스트는 자체 제작 SVG */
+var STAT_ART='<svg viewBox="0 0 260 200" width="100%" role="img" aria-label="이용권과 공, 위치 표시 일러스트">'+
+  '<defs><linearGradient id="shG1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6FA0F8"/><stop offset="1" stop-color="#256EF4"/></linearGradient>'+
+  '<linearGradient id="shG2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD66B"/><stop offset="1" stop-color="#F4B233"/></linearGradient></defs>'+
+  '<ellipse cx="130" cy="184" rx="100" ry="10" fill="#256EF4" opacity=".08"/>'+
+  '<rect x="44" y="40" width="160" height="104" rx="18" fill="#DCE7FD" transform="rotate(-9 124 92)"/>'+
+  '<g transform="rotate(5 130 104)">'+
+    '<rect x="50" y="52" width="170" height="108" rx="18" fill="url(#shG1)"/>'+
+    '<circle cx="168" cy="52" r="9" fill="#F4F7FF"/><circle cx="168" cy="160" r="9" fill="#F4F7FF"/>'+
+    '<line x1="168" y1="66" x2="168" y2="146" stroke="#fff" stroke-opacity=".55" stroke-width="2" stroke-dasharray="4 6"/>'+
+    '<rect x="68" y="70" width="52" height="18" rx="9" fill="#fff" fill-opacity=".25"/>'+
+    '<text x="94" y="83" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">이용권</text>'+
+    '<rect x="68" y="102" width="78" height="9" rx="4.5" fill="#fff" fill-opacity=".9"/>'+
+    '<rect x="68" y="119" width="54" height="9" rx="4.5" fill="#fff" fill-opacity=".5"/>'+
+    '<circle cx="194" cy="106" r="15" fill="#fff" fill-opacity=".22"/>'+
+    '<text x="194" y="111" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">₩</text>'+
+  '</g>'+
+  '<g transform="translate(214 146)"><circle r="28" fill="url(#shG2)"/>'+
+    '<path d="M-28 0 H28 M0 -28 C-14 -10 -14 10 0 28 M0 -28 C14 -10 14 10 0 28" stroke="#D9951C" stroke-width="2.2" fill="none"/></g>'+
+  '<g transform="translate(40 60)"><path d="M0 -26 C-15 -26 -24 -15 -24 -3 C-24 13 0 30 0 30 C0 30 24 13 24 -3 C24 -15 15 -26 0 -26 Z" fill="#fff" stroke="#CFDDFB" stroke-width="2"/>'+
+    '<circle cy="-4" r="9" fill="#256EF4"/></g>'+
+  '<circle cx="232" cy="46" r="5" fill="#256EF4" opacity=".25"/><circle cx="20" cy="150" r="7" fill="#F4B233" opacity=".35"/>'+
+'</svg>';
+function statCardHTML(elId,title,key,unit,go,links){
+  var v=state.homeStats[key];
+  return '<div class="sh-c">'+
+    '<button type="button" class="sh-t" onclick="App.go('+j(go)+')">'+esc(title)+' <span aria-hidden="true">›</span></button>'+
+    (v!=null
+      ? '<div class="sh-n" id="'+elId+'">'+anum(v)+'<span class="u">'+unit+'</span></div>'
+      : '<div class="sh-n skel" id="'+elId+'" data-u="'+unit+'">0</div>')+
+    '<ul class="sh-links">'+links.map(function(l){
+      return '<li><button type="button" onclick="App.go('+j(l[1])+')"><span>'+esc(l[0])+'</span><span aria-hidden="true">›</span></button></li>';
+    }).join("")+'</ul>'+
+  '</div>';
+}
+function countUp(el,n,unit){
+  el.classList.remove("skel");
+  var reduce=false; try{ reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){}
+  if(reduce){ el.innerHTML=anum(n)+'<span class="u">'+unit+'</span>'; return; }
+  var t0=null, dur=900;
+  function step(t){ if(!t0) t0=t; var k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3);
+    el.innerHTML=anum(Math.round(n*e))+'<span class="u">'+unit+'</span>'; if(k<1) requestAnimationFrame(step); }
+  requestAnimationFrame(step);
+}
+
 /* ---------- home ---------- */
 function homeHTML(){
   var demoLimit=105000;
@@ -2382,8 +2568,7 @@ function homeHTML(){
     iconNavBtn("quiz","1분 진단","quiz"),
     iconNavBtn("search","강좌 찾기","courses"),
     iconNavBtn("tag","종목 찾기","match"),
-    iconNavBtn("heart","내 기록","records"),
-    iconNavBtn("doc","데이터 출처","sources")
+    iconNavBtn("heart","내 기록","records")
   ].join("");
 
   function infoCard(ic,title,desc,view){
@@ -2395,8 +2580,7 @@ function homeHTML(){
     infoCard("quiz","진단하기","받을 수 있는 혜택이 뭔지부터 확인하고 싶어요","quiz"),
     infoCard("search","강좌 찾기","내 지역에서 지금 들을 수 있는 강좌를 찾고 싶어요","courses"),
     infoCard("tag","종목 찾기","어떤 운동을 배울 수 있는지 종목별로 보고 싶어요","match"),
-    infoCard("heart","내 기록","이번 달 지원금을 얼마나 썼고 남았는지 보고 싶어요","records"),
-    infoCard("doc","데이터 출처","이 정보가 어디서 왔는지, 얼마나 믿을 수 있는지 알고 싶어요","sources")
+    infoCard("heart","내 기록","이번 달 지원금을 얼마나 썼고 남았는지 보고 싶어요","records")
   ].join("");
 
   function guideCard(bg,ic,title,desc,onclick){
@@ -2406,7 +2590,7 @@ function homeHTML(){
   }
   var guide3=
     guideCard("var(--navy-soft)","map","가까운 시설 찾기","강좌 찾기 화면의 지도에서 내 주변 가맹시설을 바로 확인하세요.","App.go('courses')")+
-    guideCard("var(--orange-soft)","doc","데이터 출처 보기","강좌·시설 정보가 어느 공공데이터에서 왔는지 한눈에 확인하세요.","App.go('sources')")+
+    guideCard("var(--orange-soft)","heart","다음 달 미리 세팅","결제한 강좌는 다음 달로 이어지고, 자주 하는 종목과 가까운 시설을 추천해 드려요.","App.go('records')")+
     guideCard("var(--bg-2)","book","자주 묻는 질문","신청 방법, 데이터 실측 여부 등 자주 나오는 질문에 답해요.","document.getElementById('faq').scrollIntoView({behavior:'smooth'})");
 
   var notices=[
@@ -2418,7 +2602,7 @@ function homeHTML(){
 
   var faqs=[
     ["스포츠강좌이용권은 누가 받을 수 있나요?","1분 진단에서 나이·구분·지역을 입력하면 바로 확인할 수 있어요."],
-    ["여기 나오는 데이터는 실제 데이터인가요?","강좌·시설·대표자·전화 정보는 공공데이터포털 오픈API 실측값이에요. 시군구별 대상인원 등 일부 통계는 아직 예시이며, 데이터 출처에서 항목별로 확인할 수 있어요."],
+    ["여기 나오는 데이터는 실제 데이터인가요?","강좌·시설·대표자·전화 정보는 공공데이터포털 오픈API 실측값이에요. 시군구별 대상인원 등 일부 통계는 아직 예시예요."],
     ["이용권 신청도 여기서 하나요?","아니요. 신청은 국민체육진흥공단 공식 사이트에서 진행돼요. 여기는 내가 받을 수 있는 혜택과 강좌를 미리 확인하는 비공식 도구예요."],
     ["셔틀버스 운행 여부는 왜 안 나오나요?","공단이 공개하는 가맹시설·강좌 데이터에 셔틀 운행 여부가 포함돼 있지 않아서, 확인되지 않은 값을 표시하지 않아요."]
   ].map(function(f){ return '<li style="flex-direction:column;align-items:flex-start;gap:4px"><b>Q. '+esc(f[0])+'</b><span style="font-size:13px;color:var(--ink-2)">A. '+esc(f[1])+'</span></li>'; }).join("");
@@ -2433,22 +2617,17 @@ function homeHTML(){
     '</div>'+
     '<span class="eyebrow">국민체육진흥공단 체육 혜택</span>'+
     '<h1>나만의 체육 혜택, <span class="hl">이번 달 이용권</span></h1>'+
+    '<p class="hero-sub">받을 수 있는 체육 혜택을 찾고, 이번 달 지원금으로 들을 수 있는 강좌까지 계산해 드려요.</p>'+
     '<div class="srch-bar" onclick="App.go(\'courses\')" role="button" tabindex="0" aria-label="강좌 찾기로 이동">'+
       '<span class="srch-sel">전체</span>'+
       '<span class="srch-inp">지역·강좌명·시설명으로 찾아보세요</span>'+
       '<span class="srch-go">'+icon("search",18)+'</span>'+
     '</div>'+
-    '<div class="cat-tabs" role="tablist">'+
-      '<button type="button" role="tab" aria-selected="true" onclick="App.go(\'quiz\')">1분 진단</button>'+
-      '<button type="button" role="tab" aria-selected="false" onclick="App.go(\'courses\')">강좌 찾기</button>'+
-      '<button type="button" role="tab" aria-selected="false" onclick="App.go(\'match\')">종목 찾기</button>'+
-      '<button type="button" role="tab" aria-selected="false" onclick="App.go(\'records\')">내 기록</button>'+
-    '</div>'+
     '<div class="icon-nav-row"><div class="icon-nav">'+iconNav+'</div></div>'+
   '</div></section>'+
 
   '<section class="sec"><div class="wrap">'+
-    '<div class="card" style="display:grid;grid-template-columns:1.1fr .9fr;gap:32px;align-items:center;padding:26px 28px">'+
+    '<div class="card demo-card">'+
       '<div>'+
         '<span class="eyebrow">예시로 보는 소멸 지원금</span>'+
         '<h3 style="font-size:20px;font-weight:800;margin:6px 0 10px">받을 수 있는 혜택을 찾고, 남김없이 쓰는 법까지.</h3>'+
@@ -2466,25 +2645,16 @@ function homeHTML(){
   '</div></section>'+
 
   '<section class="sec" style="padding-top:0"><div class="wrap">'+
-    '<div class="stat-2col">'+
-      '<div class="card stat-card">'+
-        '<div class="stat-h" onclick="App.go(\'courses\')">전국 강좌 수 <span>›</span></div>'+
-        '<div class="stat-n skel" id="stat-course-n">0</div>'+
-        '<ul class="stat-links">'+
-          '<li><button type="button" onclick="App.go(\'match\')">종목별 강좌 찾기 ›</button></li>'+
-          '<li><button type="button" onclick="App.go(\'courses\')">지역별 강좌 찾기 ›</button></li>'+
-          '<li><button type="button" onclick="App.go(\'quiz\')">1분 진단하기 ›</button></li>'+
-        '</ul>'+
+    '<div class="sh">'+
+      '<div class="sh-l">'+
+        '<div><h2 class="sh-h"><span class="hl">전국 강좌</span>와 가까운<br><span class="hl">가맹시설</span>을 확인해 보세요.</h2>'+
+        '<p class="sh-d">국민체육진흥공단 공공데이터 실측값이에요.</p></div>'+
+        '<div class="sh-art">'+STAT_ART+'</div>'+
       '</div>'+
-      '<div class="card stat-card">'+
-        '<div class="stat-h" onclick="App.go(\'sources\')">가맹시설 수 <span>›</span></div>'+
-        '<div class="stat-n skel" id="stat-facil-n">0</div>'+
-        '<ul class="stat-links">'+
-          '<li><button type="button" onclick="App.go(\'courses\')">지도에서 내 주변 찾기 ›</button></li>'+
-          '<li><button type="button" onclick="App.go(\'sources\')">데이터 출처 보기 ›</button></li>'+
-          '<li><button type="button" onclick="App.go(\'records\')">내 기록 보기 ›</button></li>'+
-        '</ul>'+
-      '</div>'+
+      statCardHTML("stat-course-n","전국 강좌 수","courseCount","건","courses",[
+        ["종목별 강좌 찾기","match"],["지역별 강좌 찾기","courses"],["1분 진단하기","quiz"]])+
+      statCardHTML("stat-facil-n","가맹시설 수","facilCount","곳","courses",[
+        ["지도에서 내 주변 찾기","courses"],["다음 달 미리 세팅하기","records"],["내 기록 보기","records"]])+
     '</div>'+
   '</div></section>'+
 
@@ -3004,7 +3174,7 @@ function detailHTML(c){
         (hasShuttle(c)
           ? '운영해요. 노선·탑승 위치는 시설에 문의해주세요.'
           : '운영하지 않아요.')+
-        ' <button type="button" class="lnk" onclick="App.go(\'sources\')">출처 보기</button></div></div>'+
+        '</div></div>'+
       (c.feeRaw?'<div class="fact"><div class="k">원문 가격 표기</div><div class="v">'+esc(c.feeRaw)+'</div></div>':'')+
       '<div class="fact"><div class="k">전화</div><div class="v"><a href="tel:'+esc(c.tel)+'" class="mono">'+esc(c.tel)+'</a></div></div>'+
       siblingsHTML+
@@ -3018,11 +3188,306 @@ function detailHTML(c){
 }
 
 /* ---------- records ---------- */
-function recordsHTML(){
+/* ============================================================
+   CHG-60 내 기록 v2 — 월별 기록 · 다음 달 이어가기 · 맞춤 추천
+   - 기록은 월(recYM) 단위. 달이 바뀌면 지난달 기록을 history 로 옮기고,
+     결제·출석을 확인한 강좌를 다음 달 후보(carry)로 자동으로 가져온다.
+   - 추천은 설명 가능한 규칙 기반 점수(종목·거리·금액·요일)이며, 이유를 화면에 그대로 보여준다.
+   - 모든 값은 이 기기(localStorage)에만 저장. 현위치 좌표는 저장하지 않고,
+     거리 기준점은 사용자가 담은 강좌의 시설 좌표(공공데이터)를 쓴다.
+   ============================================================ */
+var DEADLINES=[
+  {d:"2026-09-30",t:"9월 결제 마감",short:"결제마감",c:"var(--warn)"},
+  {d:"2026-10-31",t:"10월 결제 마감",short:"결제마감",c:"var(--warn)"},
+  {d:"2026-12-20",t:"연말 사용 마감",short:"사용마감",c:"var(--lost)"}
+];
+var REC_W={ pay:3, add:1, att:.2, attCap:2, sig:.5, decay:.7 };   /* 추천 가중치 — 화면 설명과 같은 값 */
+
+function ymOfDate(d){ var m=d.getMonth()+1; return d.getFullYear()+"-"+(m<10?"0":"")+m; }
+function ymNow(){ return ymOfDate(new Date()); }
+function ymAdd(ym,n){ var p=ym.split("-"); return ymOfDate(new Date(Number(p[0]),Number(p[1])-1+n,1)); }
+function ymDiff(a,b){ var pa=a.split("-"),pb=b.split("-"); return (Number(pa[0])-Number(pb[0]))*12+(Number(pa[1])-Number(pb[1])); }
+function monthLabel(ym){ return Number(ym.split("-")[1])+"월"; }
+
+function findCourse(id){
+  for(var i=0;i<COURSES.length;i++) if(COURSES[i].id===id) return COURSES[i];
+  if(COURSES_SEED) for(var k=0;k<COURSES_SEED.length;k++) if(COURSES_SEED[k].id===id) return COURSES_SEED[k];
+  return null;
+}
+function snapOf(c){
+  return { id:c.id, code:c.code, facility:c.facility, name:c.name, sport:c.sport, fee:c.fee,
+    days:(c.days||[]).slice(), slot:c.slot||"", flexible:!!c.flexible,
+    lat:(c.lat!=null?c.lat:null), lng:(c.lng!=null?c.lng:null) };
+}
+/* 기록된 강좌 — 전국 데이터가 아직 안 불러와져도 사라지지 않도록 스냅샷으로 표시 */
+function recCourse(id){
+  var r=state.rec[id]; if(!r) return null;
+  if(!r.snap){ var c=findCourse(id); if(c) r.snap=snapOf(c); }
+  return r.snap||null;
+}
+function newRec(c){ return { pay:false, attDays:[], addedAt:new Date().toISOString(), snap:snapOf(c) }; }
+
+/* ---------- CHG-61 출석 달력 ----------
+   수업 날짜는 공공데이터의 '운영 요일'로 표시한다(실제 수강 요일과 다를 수 있음).
+   출석률 분모는 오늘까지 지난 운영일만 센다. 자유이용(요일 무관) 강좌는 이용 횟수만 센다. */
+var WDS=["일","월","화","수","목","금","토"];
+var CAL_COLORS=["var(--orange)","var(--ok)","var(--warn)","#7B4FC9"];
+function ymParts(ym){ var p=ym.split("-"); return { y:Number(p[0]), m:Number(p[1]) }; }
+function daysIn(ym){ var q=ymParts(ym); return new Date(q.y,q.m,0).getDate(); }
+function dowOf(ym,d){ var q=ymParts(ym); return new Date(q.y,q.m-1,d).getDay(); }
+function dayCut(ym){ var diff=ymDiff(ym,ymNow()); return diff<0? 31 : diff>0? 0 : new Date().getDate(); }
+function planDates(snap, ym){
+  if(!snap || snap.flexible || !snap.days || !snap.days.length || snap.days.length===7) return null;
+  var out=[], n=daysIn(ym);
+  for(var d=1; d<=n; d++) if(snap.days.indexOf(WDS[dowOf(ym,d)])>=0) out.push(d);
+  return out;
+}
+function attStats(snap, attDays, ym){
+  var plan=planDates(snap, ym), cut=dayCut(ym), att=(attDays||[]).length;
+  var planned = plan? plan.filter(function(d){ return d<=cut; }).length : null;
+  return { planned:planned, attended:att, rate:(planned? att/planned : null) };
+}
+function attLabel(st){
+  if(st.planned==null) return st.attended? "자유이용 · "+st.attended+"회 이용" : "자유이용 · 아직 이용 기록 없음";
+  if(!st.planned) return "아직 지난 수업일이 없어요";
+  return "지난 운영일 "+st.planned+"일 중 "+st.attended+"회 출석";
+}
+/* 자주 빠지는 요일 — 운영일인데 한 번도 출석하지 않은 요일(2회 이상) */
+function missedWeekdays(){
+  var cnt={}, cut=dayCut(state.recYM);
+  Object.keys(state.rec).forEach(function(id){
+    var s=recCourse(id), r=state.rec[id], plan=planDates(s,state.recYM); if(!plan) return;
+    plan.forEach(function(d){ if(d>cut) return; var w=WDS[dowOf(state.recYM,d)];
+      cnt[w]=cnt[w]||{p:0,a:0}; cnt[w].p++; if((r.attDays||[]).indexOf(d)>=0) cnt[w].a++; });
+  });
+  return Object.keys(cnt).filter(function(w){ return cnt[w].p>=2 && cnt[w].a===0; });
+}
+
+function calendarHTML(){
+  var ym=state.recYM, ids=Object.keys(state.rec);
+  var snaps=ids.map(recCourse);
+  if(!state.calSel || !state.rec[state.calSel]) state.calSel=ids[0];
+  var sel=state.calSel, selIdx=ids.indexOf(sel);
+  var cut=dayCut(ym), n=daysIn(ym), first=dowOf(ym,1), today=(ymDiff(ym,ymNow())===0? new Date().getDate() : 0);
+  var plans=snaps.map(function(s){ return planDates(s,ym); });
+  var dls={}; DEADLINES.forEach(function(x){ if(x.d.slice(0,7)===ym) dls[Number(x.d.slice(8,10))]=x; });
+
+  var pick=ids.map(function(id,i){
+    return '<button type="button" class="cal-pick'+(id===sel?' on':'')+'" style="--cc:'+CAL_COLORS[i%4]+'" onclick="App.selCal('+j(id)+')" aria-pressed="'+(id===sel)+'">'+
+      '<i></i>'+esc(snaps[i]? snaps[i].name : id)+'</button>';
+  }).join("");
+
+  var cells="";
+  for(var b=0;b<first;b++) cells+='<span class="cal-d empty"></span>';
+  for(var d=1; d<=n; d++){
+    var dots="", selPlan=plans[selIdx] && plans[selIdx].indexOf(d)>=0, selAtt=(state.rec[sel].attDays||[]).indexOf(d)>=0;
+    ids.forEach(function(id,i){
+      var on=(state.rec[id].attDays||[]).indexOf(d)>=0, pl=plans[i] && plans[i].indexOf(d)>=0;
+      if(on||pl) dots+='<i class="'+(on?'f':'o')+'" style="--cc:'+CAL_COLORS[i%4]+'"></i>';
+    });
+    var dl=dls[d], future=d>cut, dow=dowOf(ym,d);
+    var name=snaps[selIdx]? snaps[selIdx].name : "";
+    cells+='<button type="button" class="cal-d'+(selPlan?' sch':'')+(selAtt?' att':'')+(d===today?' today':'')+(future?' fut':'')+(dow===0?' sun':'')+'" '+
+      'style="--cc:'+CAL_COLORS[selIdx%4]+'"'+(future?' disabled':'')+' onclick="App.toggleAtt('+d+')" '+
+      'aria-label="'+monthLabel(ym)+' '+d+'일 '+esc(name)+(selAtt?' 출석함':' 출석 안 함')+(dl?' · '+esc(dl.t):'')+'">'+
+      '<span class="n">'+d+'</span>'+(dl?'<span class="dl-tag" style="background:'+dl.c+'">'+esc(dl.short)+'</span>':'')+
+      '<span class="dots">'+dots+'</span></button>';
+  }
+  var note = cut===0
+    ? '<p class="note" style="margin-top:10px">'+monthLabel(ym)+'이 되면 출석을 체크할 수 있어요. 점선은 운영 요일이에요.</p>'
+    : '<p class="note" style="margin-top:10px">강좌를 고른 뒤 다녀온 날을 누르세요. <b>점선</b>은 운영 요일(공공데이터 기준), <b>채운 점</b>은 출석한 날이에요.</p>';
+  var upcoming=DEADLINES.filter(function(x){ return x.d>=new Date().toISOString().slice(0,10); }).slice(0,3).map(function(x){
+    return '<span class="cal-up"><i style="background:'+x.c+'"></i><b class="mono">'+Number(x.d.slice(5,7))+'/'+Number(x.d.slice(8,10))+'</b> '+esc(x.t)+'</span>';
+  }).join("");
+  return '<section class="card cal">'+
+    '<div class="cal-h"><h3>'+monthLabel(ym)+' 출석 달력</h3><div class="cal-picks">'+pick+'</div></div>'+
+    '<div class="cal-g">'+WDS.map(function(w,i){ return '<span class="cal-w'+(i===0?' sun':'')+'">'+w+'</span>'; }).join("")+cells+'</div>'+
+    note+(upcoming?'<div class="cal-ups">'+upcoming+'</div>':'')+
+  '</section>';
+}
+function recList(){ return Object.keys(state.rec).map(recCourse).filter(Boolean); }
+function sumFee(list){ return list.reduce(function(s,c){ return s+(c.fee||0); },0); }
+
+function logSport(sp){
+  if(!sp) return;
+  state.sig.push({ s:sp, ym:state.recYM });
+  if(state.sig.length>60) state.sig=state.sig.slice(-60);
+  persist();
+}
+
+/* 달이 바뀌었으면 지난달 기록을 보관하고 이어갈 강좌를 준비 */
+function archiveMonth(){
   var ids=Object.keys(state.rec);
+  if(!ids.length) return [];
+  var items=ids.map(function(id){ var s=recCourse(id), r=state.rec[id];
+    if(!s) return null; var st=attStats(s, r.attDays, state.recYM);
+    return { snap:s, pay:!!r.pay, attN:st.attended, planN:st.planned }; }).filter(Boolean);
+  state.history=state.history.filter(function(h){ return h.ym!==state.recYM; });
+  state.history.unshift({ ym:state.recYM, items:items, limit:monthlyLimit(state.answers) });
+  if(state.history.length>12) state.history=state.history.slice(0,12);
+  return items;
+}
+function carryFrom(items){
+  /* 결제한 강좌만 딸려가고, 운영일 4일 이상 중 출석이 25% 미만이면 기본으로 체크 해제 */
+  var paid=items.filter(function(x){ return x.pay; });
+  var src=paid.length? paid : items;
+  return src.map(function(x){
+    var low = x.planN!=null && x.planN>=4 && (x.attN||0)/x.planN < .25;
+    return { snap:x.snap, on:!low, low:low, attN:x.attN, planN:x.planN };
+  });
+}
+function checkRollover(){
+  var now=ymNow();
+  if(!state.recYM){ state.recYM=now; return; }
+  if(ymDiff(now,state.recYM)<=0) return;
+  var from=state.recYM, items=archiveMonth();
+  state.rec={}; state.recYM=now;
+  if(items.length) state.carry={ from:from, to:now, auto:true, items:carryFrom(items) };
+  persist();
+}
+
+/* ---------- 추천 점수 ---------- */
+function sportProfile(){
+  var p={};
+  function add(sp,w){ if(sp) p[sp]=(p[sp]||0)+w; }
+  Object.keys(state.rec).forEach(function(id){ var s=recCourse(id), r=state.rec[id];
+    if(s) add(s.sport, (r.pay?REC_W.pay:REC_W.add) + Math.min(REC_W.attCap,(r.attDays||[]).length*REC_W.att)); });
+  state.history.forEach(function(h){
+    var k=Math.pow(REC_W.decay, Math.max(0,ymDiff(state.recYM,h.ym)));
+    h.items.forEach(function(x){ add(x.snap.sport, ((x.pay?REC_W.pay:REC_W.add)+Math.min(REC_W.attCap,(x.attN||0)*REC_W.att))*k); });
+  });
+  state.sig.forEach(function(g){ add(g.s, REC_W.sig*Math.pow(REC_W.decay, Math.max(0,ymDiff(state.recYM,g.ym||state.recYM)))); });
+  return p;
+}
+function recAnchors(){
+  var a=[], seen={};
+  function push(s){ if(s && s.lat!=null && s.lng!=null && !seen[s.id]){ seen[s.id]=1; a.push({lat:s.lat,lng:s.lng,label:"다니던 시설",fac:s.facility}); } }
+  recList().forEach(push);
+  state.history.slice(0,2).forEach(function(h){ h.items.forEach(function(x){ push(x.snap); }); });
+  if(state.geo) a.push({lat:state.geo.lat,lng:state.geo.lng,label:"내 위치",fac:null});
+  return a;
+}
+function recRegions(){
+  var r={};
+  recList().forEach(function(s){ r[regionKey(s.code)]=1; });
+  state.history.forEach(function(h){ h.items.forEach(function(x){ r[regionKey(x.snap.code)]=1; }); });
+  if(!Object.keys(r).length && state.f.code && state.f.code!=="all") r[regionKey(state.f.code)]=1;
+  return r;
+}
+function fmtDist(m){ return m<1000? (Math.round(m/10)*10)+"m" : (Math.round(m/100)/10)+"km"; }
+
+/* opts: exclude(ids) · budget(남는 지원금) · strict(예산·요일 넘으면 제외) · taken(요일 비교할 강좌) · n */
+function recommendCourses(opts){
+  opts=opts||{};
+  var prof=sportProfile(), anchors=recAnchors(), regions=recRegions();
+  var sports=Object.keys(prof); if(!sports.length && !anchors.length) return [];
+  var maxS=0; sports.forEach(function(s){ if(prof[s]>maxS) maxS=prof[s]; });
+  var topSport=sports.sort(function(a,b){ return prof[b]-prof[a]; })[0];
+  var ex=opts.exclude||{}, taken=opts.taken||[], out=[], seenKey={};
+  var miss=missedWeekdays(), pastIds={}; state.history.slice().reverse().forEach(function(h){ h.items.forEach(function(x){ pastIds[x.snap.id]=monthLabel(h.ym); }); });
+  for(var i=0;i<COURSES.length;i++){
+    var c=COURSES[i];
+    if(ex[c.id] || c.fee==null) continue;
+    if(!regions[regionKey(c.code)]) continue;
+    var score=0, why=[];
+    var sp=prof[c.sport]||0;
+    if(sp>0){ score+=3*sp/maxS; why.push({t:(c.sport===topSport?"가장 자주 한 종목":"해 본 종목")+" · "+c.sport, k:"c-navy"}); }
+    var best=null;
+    if(c.lat!=null && c.lng!=null) anchors.forEach(function(an){ var d=haversineM(an,{lat:c.lat,lng:c.lng}); if(!best||d<best.d) best={d:d,an:an}; });
+    if(best){
+      if(best.d<=1000) score+=2; else if(best.d<=3000) score+=1.2; else if(best.d<=5000) score+=.5;
+      if(best.d<=5000) why.push({t:(best.d<60 && best.an.fac? "다니던 시설과 같은 곳" : best.an.label+"에서 "+fmtDist(best.d)), k:"c-left"});
+    }
+    if(!why.length) continue;              /* 종목·거리 근거가 하나도 없으면 추천하지 않음 */
+    if(pastIds[c.id]){ score+=.6; why.unshift({t:pastIds[c.id]+"에 들은 강좌", k:"c-ok"}); }
+    if(opts.budget!=null){
+      if(c.fee<=opts.budget){ score+=1.5*(c.fee/Math.max(opts.budget,1)); why.push({t:"남는 "+won(opts.budget)+" 안에 들어가요", k:"c-ok"}); }
+      else if(opts.strict) continue; else score-=1;
+    }
+    if(miss.length && c.days && c.days.length && !c.flexible && c.days.length<7){
+      var avoid=c.days.every(function(w){ return miss.indexOf(w)<0; });
+      if(avoid){ score+=.5; why.push({t:"자주 빠진 "+miss.join("·")+"요일 없음", k:"c-warn"}); }
+    }
+    if(taken.length){
+      var clash=taken.some(function(t){ return dayConflict(t,c); });
+      if(clash){ if(opts.strict) continue; score-=.8; }
+      else why.push({t:"요일 안 겹쳐요", k:"c-gray"});
+    }
+    var key=c.facility+"|"+c.name; if(seenKey[key]) continue; seenKey[key]=1;
+    out.push({ c:c, score:score, why:why });
+  }
+  out.sort(function(a,b){ return b.score-a.score; });
+  return out.slice(0, opts.n||4);
+}
+
+function recRowHTML(r, btnLabel, onclick){
+  var c=r.c;
+  return '<div class="rc-row">'+
+    '<div class="rc-main"><b>'+esc(c.name)+'</b>'+
+      '<span class="note">'+esc(c.facility+" · "+c.sport)+' · <span class="mono">'+won(c.fee)+'</span>'+
+        (c.days&&c.days.length&&!c.flexible?' · '+esc(c.days.join("")):'')+'</span>'+
+      '<div class="rc-why">'+r.why.map(function(w){ return '<span class="chip '+w.k+'">'+esc(w.t)+'</span>'; }).join("")+'</div>'+
+    '</div>'+
+    '<button type="button" class="btn btn-ol btn-sm" onclick="'+onclick+'">'+btnLabel+'</button>'+
+  '</div>';
+}
+
+/* ---------- 다음 달 이어가기 카드 ---------- */
+function carryHTML(){
+  var cy=state.carry; if(!cy) return "";
+  var limit=monthlyLimit(state.answers);
+  var chosen=cy.items.filter(function(x){ return x.on; }).map(function(x){ return x.snap; });
+  var total=sumFee(chosen), remain=(limit!=null? Math.max(0,limit-total) : null);
+  var rows=cy.items.map(function(x,i){
+    return '<button type="button" class="chk'+(x.on?' on':'')+'" onclick="App.carryToggle('+i+')" aria-pressed="'+x.on+'">'+
+      '<span class="box"></span><span style="flex:1">'+esc(x.snap.name)+' <span class="note">'+esc(x.snap.facility)+'</span>'+
+        (x.low?' <span class="chip c-warn">출석 '+(x.attN||0)+'/'+x.planN+' · 자동 제외</span>':(x.planN?' <span class="chip c-gray">출석 '+(x.attN||0)+'/'+x.planN+'</span>':''))+'</span>'+
+      '<span class="mono" style="font-weight:700">'+(x.snap.fee!=null?won(x.snap.fee):"금액 미정")+'</span></button>';
+  }).join("");
+  var ex={}; cy.items.forEach(function(x){ ex[x.snap.id]=1; });
+  var fill="";
+  if(limit!=null && remain>0){
+    var recs=recommendCourses({ exclude:ex, budget:remain, strict:true, taken:chosen, n:3 });
+    if(recs.length){
+      fill='<div class="grp-h" style="margin:18px 0 8px"><h3 style="font-size:15px">남는 '+won(remain)+' 채우기</h3></div>'+
+        recs.map(function(r){ return recRowHTML(r,"+ 추가","App.carryAdd("+j(r.c.id)+")"); }).join("");
+    } else if(chosen.length===1){
+      var one=chosen[0];
+      var swaps=recommendCourses({ exclude:ex, budget:limit, strict:true, n:6 }).filter(function(r){ return r.c.fee>one.fee; }).slice(0,2);
+      if(swaps.length) fill='<div class="grp-h" style="margin:18px 0 8px"><h3 style="font-size:15px">바꾸면 소멸이 줄어요</h3></div>'+
+        '<p class="note" style="margin-bottom:8px">남는 금액에 맞는 강좌는 없지만, '+esc(one.name)+' 대신 들으면 지원금을 더 쓸 수 있어요.</p>'+
+        swaps.map(function(r){ return recRowHTML(r,"바꾸기","App.carrySwap("+j(r.c.id)+")"); }).join("");
+    }
+  }
+  var head= cy.auto
+    ? monthLabel(cy.from)+'에 들은 강좌를 '+monthLabel(cy.to)+'로 가져왔어요'
+    : monthLabel(cy.to)+'에도 이어서 들을까요?';
+  return '<section class="card carry">'+
+    '<span class="eyebrow" style="color:var(--orange)">'+monthLabel(cy.to)+' 자동 세팅</span>'+
+    '<h2 style="font-size:20px;font-weight:800;margin:4px 0 6px">'+head+'</h2>'+
+    '<p class="note">결제한 강좌가 그대로 딸려와요. 출석이 적었던 강좌는 빼 두었으니, 계속 들을 거면 다시 체크해 주세요.</p>'+
+    '<div class="checks" style="margin:12px 0 16px">'+rows+'</div>'+
+    (limit!=null? gaugeHTML(limit,total,{label:monthLabel(cy.to)+" 지원금"})
+      : '<p class="note">지원 구분을 고르면 '+monthLabel(cy.to)+' 소멸 예상액을 계산해 드려요.</p>'+tierPickHTML())+
+    fill+
+    '<div class="acts" style="margin-top:18px">'+
+      '<button type="button" class="btn btn-o" onclick="App.confirmCarry()"'+(chosen.length?'':' disabled')+'>'+monthLabel(cy.to)+' 강좌로 확정하기</button>'+
+      '<button type="button" class="btn btn-g" onclick="App.cancelCarry()">'+(cy.auto?'이번엔 새로 고를게요':'취소')+'</button>'+
+    '</div>'+
+  '</section>';
+}
+function tierPickHTML(){
+  return '<div class="basis" style="margin-top:10px"><span>지원 구분</span>'+
+    '<select class="sel" onchange="App.setTier(this.value)" aria-label="지원 구분 선택"><option value="">선택하세요</option>'+
+    SUPPORT.tiers.map(function(t){ return '<option value="'+t.id+'">'+esc(t.label)+' · 월 '+won(t.limit)+'</option>'; }).join("")+
+    '</select></div>';
+}
+
+function recordsHTML(){
+  var ids=Object.keys(state.rec), list=recList();
+  var limit=monthlyLimit(state.answers), used=sumFee(list);
   var cards=ids.map(function(id){
-    var c=null; for(var i=0;i<COURSES.length;i++) if(COURSES[i].id===id) c=COURSES[i];
-    if(!c) return "";
+    var c=recCourse(id); if(!c) return "";
     var r=state.rec[id];
     return '<article class="rec">'+
       '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">'+
@@ -3032,18 +3497,10 @@ function recordsHTML(){
       '</div>'+
       '<button type="button" class="tgl'+(r.pay?' on':'')+'" onclick="App.toggleRec('+j(id)+',\'pay\')" aria-pressed="'+r.pay+'">'+
         '<span>결제 확인</span><span>'+(r.pay?'확인함':'미확인')+'</span></button>'+
-      '<button type="button" class="tgl'+(r.att?' on':'')+'" onclick="App.toggleRec('+j(id)+',\'att\')" aria-pressed="'+r.att+'">'+
-        '<span>출석 확인</span><span>'+(r.att?'확인함':'미확인')+'</span></button>'+
+      (function(){ var st=attStats(c, r.attDays, state.recYM), pct=st.rate!=null? Math.min(100,Math.round(st.rate*100)) : null;
+        return '<div class="att-sum"><span>'+esc(attLabel(st))+'</span>'+
+          (pct!=null? '<span class="att-bar"><i style="width:'+pct+'%"></i></span>' : '')+'</div>'; })()+
     '</article>';
-  }).join("");
-
-  var DL=[
-    {d:"2026-09-30",t:"9월 결제 마감",a:"이번 달 강좌비 결제를 확인해주세요.",c:"var(--warn)"},
-    {d:"2026-10-31",t:"10월 결제 마감",a:"다음 달 강좌 등록도 함께 확인해주세요.",c:"var(--ok)"},
-    {d:"2026-12-20",t:"연말 사용 마감",a:"남은 지원금은 이월되지 않아요.",c:"var(--lost)"}
-  ].map(function(x){
-    return '<div class="dl" style="border-left-color:'+x.c+'">'+
-      '<div class="d mono">'+x.d+'</div><div class="t">'+esc(x.t)+'</div><div class="a">'+esc(x.a)+'</div></div>';
   }).join("");
 
   var advRows = state.advances.length ? state.advances.map(function(r){
@@ -3057,28 +3514,74 @@ function recordsHTML(){
       '</div></div>';
   }).join("") : "";
 
+  /* 이번 달 게이지 */
+  var gauge = ids.length
+    ? (limit!=null ? '<div class="card" style="padding:18px 20px;margin-bottom:14px">'+gaugeHTML(limit,used,{label:monthLabel(state.recYM)+" 지원금"})+'</div>'
+                   : '<div style="margin-bottom:14px">'+tierPickHTML()+'</div>')
+    : "";
+
+  /* 맞춤 추천 */
+  var ex={}; ids.forEach(function(id){ ex[id]=1; });
+  if(state.carry) state.carry.items.forEach(function(x){ ex[x.snap.id]=1; });
+  var recs=recommendCourses({ exclude:ex, budget:(limit!=null? Math.max(0,limit-used):null), taken:list, n:4 });
+  var recBlock = '<div class="grp-h" style="margin-top:30px"><h3>'+icon("heart",16)+' 나에게 맞춘 추천</h3></div>'+
+    (recs.length
+      ? '<div class="rc-list">'+recs.map(function(r){ return recRowHTML(r,"담기","App.addRecCourse("+j(r.c.id)+")"); }).join("")+'</div>'
+      : '<p class="note">강좌를 담거나 종목 찾기·강좌 찾기에서 종목을 골라 보면, 그 기록을 바탕으로 추천이 시작돼요.</p>');
+
+  /* 지난 기록 */
+  var hist = state.history.length
+    ? '<div class="grp-h" style="margin-top:30px"><h3>지난 기록</h3></div><div class="hist">'+
+      state.history.map(function(h){
+        var tot=sumFee(h.items.map(function(x){return x.snap;})), lost=(h.limit!=null? Math.max(0,h.limit-tot):null);
+        return '<div class="hist-row"><b class="mono">'+ymLabel(h.ym)+'</b>'+
+          '<span class="note" style="flex:1">'+esc(h.items.map(function(x){return x.snap.name+(x.attN!=null&&x.planN?' (출석 '+x.attN+'/'+x.planN+')':'');}).join(", "))+'</span>'+
+          (lost==null? '' : lost>0? '<span class="chip c-lost">'+won(lost)+' 소멸</span>' : '<span class="chip c-ok">남김없이 사용</span>')+
+        '</div>';
+      }).join("")+'</div>'
+    : "";
+
+  var planBtn = (ids.length && !state.carry)
+    ? '<div class="plan-next"><div><b>'+monthLabel(ymAdd(state.recYM,1))+' 미리 세팅하기</b>'+
+        '<p class="note">결제한 강좌가 다음 달로 딸려가고, 남는 지원금을 채울 강좌도 골라 드려요.</p></div>'+
+        '<button type="button" class="btn btn-n btn-sm" onclick="App.planNext()">세팅하기</button></div>'
+    : "";
+
+  var empty = '<div class="empty">'+mascotIMG("sad",64)+'<h3>'+monthLabel(state.recYM)+'에 담은 강좌가 없어요</h3>'+
+    '<p class="note">강좌를 담아 두면 다음 달에 그대로 이어지고, 자주 하는 종목과 가까운 시설을 추천해 드려요.</p>'+
+    '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px">'+
+      '<button type="button" class="btn btn-o btn-sm" onclick="App.go(\'courses\')">강좌 찾으러 가기</button>'+
+      '<button type="button" class="btn btn-g btn-sm" onclick="App.demoRec()">예시 데이터로 둘러보기</button>'+
+    '</div></div>';
+
   return '<main class="wrap"><div class="p4g">'+
     '<section>'+
-      '<h1 class="sec-t">'+(state.session.user? esc(state.session.user.name)+'님의 기록' : '내 기록')+'</h1>'+
-      
-      (ids.length? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">'+cards+'</div>'
-        : '<div class="empty">'+mascotIMG("sad",64)+'<h3>아직 담은 강좌가 없어요</h3>'+
-          
-          '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px">'+
-            '<button type="button" class="btn btn-o btn-sm" onclick="App.go(\'courses\')">강좌 찾으러 가기</button>'+
-            '<button type="button" class="btn btn-g btn-sm" onclick="App.demoRec()">예시 데이터로 둘러보기</button>'+
-          '</div></div>')+
+      '<h1 class="sec-t">'+(state.session.user? esc(state.session.user.name)+'님의 기록' : '내 기록')+
+        ' <span class="chip c-navy" style="vertical-align:6px">'+ymLabel(state.recYM)+'</span></h1>'+
+      carryHTML()+
+      gauge+
+      (ids.length? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">'+cards+'</div>'+calendarHTML()+planBtn
+        : (state.carry? '' : empty))+
+      recBlock+
       (state.advances.length? '<div class="grp-h" style="margin-top:28px"><h3>'+icon("won",16)+' 당겨쓴 지원금</h3></div>'+
         '<div class="combo-list">'+advRows+'</div>'+
         '<p class="note" style="margin-top:8px">최대 2개월분까지 당겨쓸 수 있고(연 126만원 한도), 선결제는 금지예요. 결제한 강좌는 1개월 안에 실제로 수강해야 해요.</p>' : "")+
+      hist+
     '</section>'+
-    '<aside class="p4-side"><span class="eyebrow">다가오는 마감</span><div style="margin-top:10px">'+DL+'</div>'+
-      '<p class="note">실제 결제·출석 상태를 공식 시스템에서 자동으로 확인하지는 않아요.</p></aside>'+
+    '<aside class="p4-side">'+
+      '<div class="rc-how" style="margin-top:0"><b>추천은 이렇게 정해져요</b><ul>'+
+        '<li><b>종목</b> — 결제한 강좌 '+REC_W.pay+'점, 담은 강좌 '+REC_W.add+'점, 출석 1회당 +'+REC_W.att+'점(최대 '+REC_W.attCap+'점), 종목을 골라 본 기록 '+REC_W.sig+'점. 한 달 지날 때마다 '+REC_W.decay+'배로 줄어요.</li>'+
+        '<li><b>출석</b> — 운영일인데 한 번도 안 간 요일이 있으면 그 요일이 없는 강좌를 높게</li>'+
+        '<li><b>거리</b> — 다니던 시설(또는 현위치)에서 1km 안 +2, 3km 안 +1.2, 5km 안 +0.5</li>'+
+        '<li><b>금액</b> — 남는 지원금 안에 들어가고, 꽉 채울수록 높게</li>'+
+        '<li><b>요일</b> — 지금 듣는 강좌와 요일이 겹치면 낮게</li>'+
+      '</ul><p class="note">모든 기록은 이 기기에만 저장되고, 현위치 좌표는 저장하지 않아요. 결제·출석은 직접 체크한 값이며 공식 시스템과 연동되지 않아요.</p></div>'+
+    '</aside>'+
   '</div></main>';
 }
 
 /* ---------- sources ---------- */
-function sourcesHTML(){
+function sourcesHTML(embed){
   var rows=DATASETS.map(function(d){
     return '<tr><td><b>'+esc(d.name)+'</b><br><span class="src">'+esc(d.org)+'</span></td>'+
       '<td>'+esc(d.cycle)+'</td><td>'+esc(d.fields)+'</td><td>'+esc(d.use)+'</td>'+
@@ -3094,7 +3597,7 @@ function sourcesHTML(){
       '<td>'+(b.period.source?'<a href="'+esc(b.period.source)+'" target="_blank" rel="noopener noreferrer">출처 ↗</a>':'<span class="src">미확인</span>')+'</td></tr>';
   }).join("");
 
-  return '<main class="wrap sec">'+
+  return (embed? '<div class="adm-card" style="margin-top:0">' : '<main class="wrap sec">')+
     '<h1 class="sec-t">데이터 출처</h1>'+
     '<p class="sec-d">화면에 나오는 모든 숫자의 근거를 공개해요. 검증되지 않은 값은 그대로 표시합니다.</p>'+
     '<h3 style="font-size:16px;font-weight:800;margin:24px 0 8px">활용 데이터셋</h3>'+
@@ -3138,7 +3641,7 @@ function sourcesHTML(){
       '소멸액 = max(0, 월 지원금 − 수강료) × 개월수<br>'+
       '도보 시간 = 직선거리 ÷ 3km/h (아동 보행속도 기준)</p>'+
       '<p class="note" style="margin-top:8px">지원금은 이월되지 않으므로 사용하지 않은 잔액은 소멸로 계산합니다.</p></div>'+
-  '</main>';
+  (embed? '</div>' : '</main>');
 }
 
 /* ---------- 종목 찾기 (아이 선호 매칭) ---------- */
@@ -3246,7 +3749,8 @@ function privacyHTML(){
     ])+
     block("기기에만 저장되는 것",[
       "진단 답변(출생연도·지원구분·장애 등록 여부·시·군·구)",
-      "담아둔 강좌와 결제·출석 체크 표시",
+      "담아둔 강좌, 결제 체크, 출석한 날짜, 월별 지난 기록",
+      "추천에 쓰는 종목 선택 기록(최근 60건)",
       "필터 설정과 출발지",
       "저장 위치는 <b>브라우저의 localStorage</b>이며, 브라우저 데이터를 지우면 함께 사라집니다."
     ])+
@@ -3257,7 +3761,7 @@ function privacyHTML(){
       "만 14세 미만 이용자는 보호자와 함께 사용해주세요."
     ])+
     block("정확도에 대한 고지",[
-      "지원금액·신청시기 등 일부 수치는 <b>공고 원문 검증 전</b>입니다. 검증 상태는 데이터 출처 화면에 그대로 공개합니다.",
+      "지원금액·신청시기 등 일부 수치는 <b>공고 원문 검증 전</b>입니다. 검증 상태는 운영자 화면의 «데이터 출처» 탭에서 관리합니다.",
       "강좌 목록에는 <b>예시 데이터</b>가 섞여 있으며 카드에 표시됩니다.",
       "거리는 직선거리 기준 추정치입니다.",
       "실제 신청·자격·금액은 반드시 각 사업 공식 채널에서 확인해주세요."
@@ -3470,7 +3974,10 @@ function renderInner(){
     case "result": main=resultHTML(); break;
     case "courses": main=coursesHTML(); break;
     case "records": main=recordsHTML(); break;
-    case "sources": main=sourcesHTML(); break;
+    case "sources":   /* 데이터 출처는 운영자 화면 탭으로 이동 */
+      if(state.admin.auth){ state.route="admin"; state.admin.tab="sources"; main=adminHTML(); }
+      else { state.route="home"; main=homeHTML(); App.loadHomeStats(); }
+      break;
     case "privacy": main=privacyHTML(); break;
     case "match": main=matchHTML(); break;
     case "admin": main=adminHTML(); break;
@@ -3601,7 +4108,8 @@ var ADMIN_TABS = [
   ["blindspot", "사각지대 분석"],
   ["region",    "지역 상세"],
   ["demand",    "수요 신호"],
-  ["data",      "데이터"]
+  ["data",      "데이터"],
+  ["sources",   "데이터 출처"]
 ];
 
 /* D1(지역별 스포츠강좌이용권 활용정보)과 동일한 필드 구성.
@@ -4355,6 +4863,7 @@ function adminHTML(){
   else if(tab==="region") body=admRegionHTML(rows,sum);
   else if(tab==="demand") body=admDemandHTML();
   else if(tab==="data")   body=admDataHTML();
+  else if(tab==="sources") body=sourcesHTML(true);
   else body=admOverviewHTML(rows,sum);
 
   var warn = (STATS_META.origin==="sample")
@@ -4386,6 +4895,16 @@ function adminHTML(){
    GitHub Pages·Netlify·Vercel 어디든 상대경로라 그대로 동작하고, 한 번의 요청으로
    끝나서 API 를 67번 부르는 것보다 훨씬 빠릅니다(압축 전송 기준 1MB 남짓).
    파일이 없으면(404) 조용히 오픈API 경로로 넘어갑니다. */
+/* CHG-63: index.html 을 더블클릭해 file:// 로 열면 브라우저가 data/ 폴더 읽기(fetch)를 막고,
+   공공데이터 API 도 출처(origin)가 없어 막힌다. 배포 주소(GitHub Pages 등)에서는 정상. */
+var IS_FILE=(location.protocol==="file:");
+function nationErrText(e){
+  if(IS_FILE) return "파일을 직접 열면 데이터를 불러올 수 없어요. 배포된 주소(https://…github.io/…)로 열어 주세요.";
+  var m=String((e&&e.message)||e||"");
+  if(/Failed to fetch|NetworkError|Load failed/i.test(m)) return "공공데이터 서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.";
+  if(/SERVICE_KEY|SERVICE KEY|등록되지 않은/i.test(m)) return "공공데이터 인증키 문제예요. 운영자에게 알려 주세요. ("+m+")";
+  return m;
+}
 var NATION_FILE="./data/nation.json";
 var NATION_FILE_GZ="./data/nation_data.json.gz";
 /* CHG-53: 전국 데이터 파일이 대표자명/강사명/강좌 소개까지 담으면서 용량이 커져
@@ -4433,10 +4952,14 @@ App.loadHomeStats=function(){
     state.homeStats.courseCount=file.list.length;
     state.homeStats.facilCount=fc;
     var elC=document.getElementById("stat-course-n");
-    if(elC){ elC.classList.remove("skel"); elC.innerHTML=anum(file.list.length)+'<span class="stat-u">건</span>'; }
+    if(elC) countUp(elC,file.list.length,"건");
     var elF=document.getElementById("stat-facil-n");
-    if(elF){ elF.classList.remove("skel"); elF.innerHTML=anum(fc)+'<span class="stat-u">곳</span>'; }
-  }).catch(function(){}).then(function(){ state.homeStats.loading=false; });
+    if(elF) countUp(elF,fc,"곳");
+  }).catch(function(){}).then(function(){
+    state.homeStats.loading=false;
+    ["stat-course-n","stat-facil-n"].forEach(function(id){ var el=document.getElementById(id);
+      if(el && el.classList.contains("skel")){ el.classList.remove("skel"); el.innerHTML='<span class="sh-na">'+(IS_FILE?'파일로 열면 표시되지 않아요':'불러오지 못했어요')+'</span>'; } });
+  });
 };
 App.loadNation=function(force){
   if(state.nation.status==="loading") return;
@@ -4508,7 +5031,7 @@ App.loadNation=function(force){
   }).catch(function(e){
     console.error("[nation] 실패:", e);
     state.nation.status="error";
-    state.nation.msg=String((e&&e.message)||e);
+    state.nation.msg=nationErrText(e);
     revertNation();
     render();
   });
@@ -4736,6 +5259,7 @@ document.addEventListener("keydown",function(e){
 });
 
 restore();
+checkRollover();
 readQuery();
 render();
 
