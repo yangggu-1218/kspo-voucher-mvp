@@ -1956,20 +1956,18 @@ function judged(){
    ============================================================ */
 
 /* ============================================================
-   CHG-66 셔틀 운영 여부 — 표시하지 않습니다
-   [왜 지웠는지 — 다시 넣기 전에 반드시 읽어주세요]
-   예전(CHG-25)에는 «셔틀로 거르기» 기능을 보여주려고 시설명 해시로 약 40%에 셔틀을
-   임의 부여하고, 상세 화면에 «운영해요/운영하지 않아요»라고 단정해 적었습니다.
-   그런데 이 앱의 이용자 상당수는 차가 없는 저소득·장애 가정입니다. 셔틀이 있다고 믿고
-   등록했다가 통학이 불가능해지면 그달 지원금이 통째로 소멸합니다. 같은 앱의 FAQ가
-   «셔틀 정보는 공개 데이터에 없어 표시하지 않는다»고 쓰고 있었기 때문에 앱이 스스로
-   모순되기도 했습니다. 그래서 값·필터·목록 배지를 모두 제거하고, 상세에는 «데이터에
-   없으니 시설에 확인하라»는 안내만 남깁니다.
-   실제 셔틀 데이터가 확보되면 c.shuttle 을 채우고 이 자리에 판정 함수를 다시 두세요. */
+   CHG-25/67 셔틀 운영 여부 (가상 예시값)
+   실제 셔틀 운행 데이터는 없어, 시설명 해시로 고정된 가상값을 보여줍니다
+   (일반·장애인 시설 동일 방식). 실데이터가 생기면 c.shuttle 을 채우고
+   hasShuttle() 한 곳만 고치면 됩니다. */
 function hashStr(s){
   var h=0;
   for(var i=0;i<s.length;i++){ h=((h<<5)-h+s.charCodeAt(i))|0; }
   return Math.abs(h);
+}
+function hasShuttle(c){
+  if(!c||!c.facility) return false;
+  return hashStr(c.facility)%100 < 40;
 }
 
 /* ============================================================
@@ -2240,6 +2238,7 @@ function courseView(){
     if(f.sports.length && f.sports.indexOf(c.sport)<0) return false;
     if(f.days.length && !c.days.some(function(d){return f.days.indexOf(d)>=0;})) return false;
     if(f.slots.length && f.slots.indexOf(c.slot)<0) return false;
+    if(f.shuttle && !hasShuttle(c)) return false;   /* CHG-25/67 */
     /* CHG-66: 장애인 이용권 데이터를 아직 못 받았으면 이 필터를 «적용하지 않는다».
        예전에는 저장된 dvOnly=true 로 재방문했을 때 데이터가 없어 목록이 영구히 0건이 됐다. */
     if(f.dvOnly && DV_MAP && !c.dvoucher) return false;
@@ -2520,9 +2519,7 @@ window.App=App;
 
 function govBar(){
   return '<div class="gov-bar"><div class="wrap gov-bar-in">'+
-    /* CHG-66: 마지막 남아 있던 시연값(셔틀)을 제거해, 이제 화면의 모든 값은 공개 데이터
-       실측값이거나 «확인 필요»로 표시됩니다. 고지 문구도 그에 맞게 줄였습니다. */
-    '<span><b>비공식 데모</b> · 국민체육진흥공단과 무관 · 공식 신청은 공식 사이트에서</span>'+
+    '<span><b>비공식 데모</b> · 국민체육진흥공단과 무관 · 셔틀 표시는 시연용</span>'+
     '<button type="button" onclick="App.go(\'privacy\')">개인정보 안내</button>'+
   '</div></div>';
 }
@@ -2739,14 +2736,14 @@ function homeHTML(){
     ["이 사이트는 국민체육진흥공단과 무관한 비공식 데모예요.","안내"],
     ["강좌·가맹시설 정보는 공공데이터포털 오픈API 실측값을 바로 불러와요.","데이터"],
     ["가맹시설 수는 공단이 공개한 가맹시설 정보(KS_SPORTS_VOUCH_FCLTY_INFO) CSV 기준이에요.","데이터"],
-    ["셔틀 운행 여부는 공식 데이터에 없어 이 화면에서는 표시하지 않아요.","안내"]
+    ["셔틀 운영 정보는 실제 값이 없어 시연용 예시로 보여드려요.","안내"]
   ].map(function(n){ return '<li><b>'+esc(n[0])+'</b><span>'+esc(n[1])+'</span></li>'; }).join("");
 
   var faqs=[
     ["스포츠강좌이용권은 누가 받을 수 있나요?","1분 진단에서 나이·구분·지역을 입력하면 바로 확인할 수 있어요."],
     ["여기 나오는 데이터는 실제 데이터인가요?","강좌·시설·대표자·전화 정보는 공공데이터포털 오픈API 실측값이에요. 시군구별 대상인원 등 일부 통계는 아직 예시예요."],
     ["이용권 신청도 여기서 하나요?","아니요. 신청은 국민체육진흥공단 공식 사이트에서 진행돼요. 여기는 내가 받을 수 있는 혜택과 강좌를 미리 확인하는 비공식 도구예요."],
-    ["셔틀버스 운행 여부는 왜 안 나오나요?","공단이 공개하는 가맹시설·강좌 데이터에 셔틀 운행 여부가 포함돼 있지 않아서, 확인되지 않은 값을 표시하지 않아요."]
+    ["셔틀버스 운행 여부는 실제 정보인가요?","아니요. 공개 데이터에 셔틀 운행 여부가 없어서, 필터 기능을 보여주기 위한 시연용 값이에요."]
   ].map(function(f){ return '<li style="flex-direction:column;align-items:flex-start;gap:4px"><b>Q. '+esc(f[0])+'</b><span style="font-size:13px;color:var(--ink-2)">A. '+esc(f[1])+'</span></li>'; }).join("");
 
   return '<main>'+
@@ -3103,7 +3100,11 @@ function coursesHTML(){
         var on=f.slots.indexOf(s.id)>=0;
         return '<button type="button" class="chk'+(on?' on':'')+'" onclick="App.toggleArr(\'slots\','+j(s.id)+')" aria-pressed="'+on+'"><span class="box"></span><span>'+esc(s.label)+'</span></button>';
       }).join("")+'</div></div>'+
-    /* CHG-66: «셔틀 운영» 필터 제거 — 근거 데이터가 없어 거를 수 없습니다 */
+    /* CHG-25/67: 셔틀 운영 시설만 보기 (가상 예시값) */
+    '<div class="fgrp"><span class="flbl">'+icon("bus",14)+' 셔틀</span><div class="checks">'+
+      '<button type="button" class="chk'+(f.shuttle?' on':'')+'" onclick="App.toggleFlag(\'shuttle\')" aria-pressed="'+(!!f.shuttle)+'">'+
+        '<span class="box"></span><span>셔틀 운영</span></button>'+
+    '</div></div>'+
     /* CHG-66: 필터 이름을 실제 판정 기준(같은 종목 등록강좌가 있는 «시설»)에 맞추고,
        불러오기에 실패했을 때 막다른 길이 되지 않도록 «다시 시도» 버튼을 답니다. */
     '<div class="fgrp"><span class="flbl"><span aria-hidden="true">♿</span> 장애인 이용권</span><div class="checks">'+
@@ -3177,7 +3178,7 @@ function coursesHTML(){
       '<span class="mrow">'+icon("tag",13)+esc(c.sport)+'</span>'+
       '<span class="mrow">'+icon("calendar",13)+esc(c.days.join("·")+"요일")+'</span>'+
       '<span class="mrow">'+icon("clock",13)+esc(SLOT_LABEL[c.slot])+'</span>'+
-      '';   /* CHG-66: 셔틀 시연값 제거 — 공개 데이터에 없는 정보라 목록에 표시하지 않음 */
+      (hasShuttle(c)?'<span class="mrow">'+icon("bus",13)+'셔틀 운영</span>':'');   /* CHG-25/67 */
     var vd=c._verdict, money;
     if(vd.k==="ok") money='<span class="k">이번 달</span><span class="v mono" style="color:var(--ok)">내 돈 0원</span><span class="s">추가 부담 없음</span>';
     else if(vd.k==="left") money='<span class="k">이번 달</span><span class="v mono" style="color:var(--left)">'+won(vd.left)+' 남음</span><span class="s">지원금이 남아요</span>';
@@ -3228,6 +3229,7 @@ function coursesHTML(){
   if(f.sports.length) active.push(f.sports.join(", "));
   if(f.days.length) active.push(f.days.join("")+"요일");
   if(f.slots.length) active.push(f.slots.map(function(s){return SLOT_LABEL[s];}).join(", "));
+  if(f.shuttle) active.push("셔틀 운영");
   if(f.dvOnly) active.push("장애인 이용권 등록시설만");
   if(f.verdict) active.push({ok:"자부담 없는 강좌만",left:"지원금이 남는 강좌",pay:"자부담이 붙는 강좌"}[f.verdict]);
   if(f.q) active.push('"'+f.q+'"');
@@ -3363,9 +3365,11 @@ function detailHTML(c){
       (c.instr?'<div class="fact"><div class="k">강사</div><div class="v">'+esc(c.instr)+'</div></div>':'')+
       (c.desc?'<div class="fact"><div class="k">강좌 소개</div><div class="v">'+esc(c.desc)+'</div></div>':'')+
       rankLine+
-      /* CHG-66: 셔틀 시연값 제거 — 있지도 않은 정보를 단정하던 자리를 정직한 안내로 바꿉니다 */
+      /* CHG-25/67: 셔틀 운영 여부(가상 예시값 — hasShuttle() 주석 참고) */
       '<div class="fact"><div class="k">셔틀</div><div class="v">'+
-        '공단이 공개한 데이터에 셔틀 운행 정보가 없어요. 시설에 전화로 확인해주세요.'+
+        (hasShuttle(c)
+          ? '운영해요. 노선·탑승 위치는 시설에 문의해주세요.'
+          : '운영하지 않아요.')+
         '</div></div>'+
       (c.feeRaw?'<div class="fact"><div class="k">원문 가격 표기</div><div class="v">'+esc(c.feeRaw)+'</div></div>':'')+
       '<div class="fact"><div class="k">전화</div><div class="v"><a href="tel:'+esc(c.tel)+'" class="mono">'+esc(c.tel)+'</a></div></div>'+
@@ -3811,10 +3815,9 @@ function sourcesHTML(embed){
       '받은 데이터는 이 브라우저에 '+NATION_CACHE_DAYS+'일간 저장해 두고 다시 씁니다. '+
       '불러오기 전에는 손으로 검증한 표본 '+(COURSES_SEED?COURSES_SEED.length:153)+'건으로 동작합니다.</p>'+
     '<h3 style="font-size:16px;font-weight:800;margin:26px 0 8px">셔틀 운영 여부</h3>'+
-    '<p class="note">셔틀 정보는 공단 공개 데이터(가맹시설·등록강좌)에 들어 있지 않습니다. '+
-      '예전에는 기능 확인용 시연값을 «운영해요/운영하지 않아요»로 표시했지만, 차가 없는 가정이 '+
-      '이 표시를 믿고 등록했다가 통학을 못 하게 될 수 있어 <b>2026-09 표시·필터를 모두 제거</b>했습니다. '+
-      '지금은 강좌 상세에 «데이터에 없으니 시설에 확인해주세요»라고만 안내합니다.</p>'+
+    '<p class="note">셔틀 정보는 공단 공개 데이터(가맹시설·등록강좌)에 들어 있지 않아, 현재 화면의 표시는 '+
+      '<b>기능 확인용 시연값</b>입니다. 실제 운영 여부는 시설에 직접 확인해주세요. '+
+      '시설별 실측값을 확보하면 코드 한 곳(<span class="mono">hasShuttle()</span>)만 교체하면 됩니다.</p>'+
     '<h3 style="font-size:16px;font-weight:800;margin:26px 0 8px">신청 시기</h3>'+
     '<div class="tw"><table><thead><tr><th>사업</th><th>신청 시기</th><th>검증</th><th>출처</th></tr></thead><tbody>'+periods+'</tbody></table></div>'+
     '<h3 style="font-size:16px;font-weight:800;margin:26px 0 8px">중복수혜 관계</h3>'+
