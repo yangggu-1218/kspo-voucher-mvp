@@ -2748,10 +2748,10 @@ function header(){
   function nb(id,label){
     return '<button type="button" onclick="App.go('+j(id)+')"'+(r===id?' aria-current="page"':'')+'>'+esc(label)+'</button>';
   }
-  return govBar()+'<header class="hd"><div class="wrap hd-in">'+
+  /* CHG-76: 상단 «비공식 데모» 띠와 로고 옆 «비공식» 배지는 요청에 따라 뺐다. 비공식 고지와 개인정보 안내는 푸터로 옮김 */
+  return '<header class="hd"><div class="wrap hd-in">'+
     '<button type="button" class="logo" onclick="App.go(\'home\')">'+
-      mascotIMG("wave",32,"mascot-logo")+'<span class="logo-tx">이번 달 이용권</span>'+
-      '<span class="logo-un">비공식</span></button>'+
+      mascotIMG("wave",32,"mascot-logo")+'<span class="logo-tx">이번 달 이용권</span></button>'+
     '<nav class="nav" aria-label="주요 메뉴">'+
       nb("home","혜택 한눈에")+nb("quiz","내 혜택 진단")+nb("match","종목 찾기")+nb("courses","강좌 찾기")+
       nb("records","내 기록")+
@@ -2817,7 +2817,9 @@ function footer(){
   return '<footer class="ft"><div class="wrap ft-in">'+
     '<p>국민체육진흥공단이 운영하는 체육 혜택을 한곳에서 확인하는 참고용 안내 서비스예요. '+
     '신청과 자격 확정은 각 공식 시스템에서 진행돼요. 표시된 금액은 기준일 데이터로 계산한 예상치예요. '+
+    '<a href="javascript:void(0)" onclick="App.go(\'privacy\')" style="color:var(--faint);text-decoration:underline">개인정보 안내</a> · '+
     '<a href="javascript:void(0)" onclick="App.go(\'admin\')" style="color:var(--faint);text-decoration:underline">운영자 화면</a></p>'+
+    '<p style="margin-top:6px;font-size:12px;color:var(--faint)">이 사이트는 공모전 출품용 MVP로, 국민체육진흥공단의 공식 서비스가 아니에요.</p>'+
   '</div>'+
   '<div class="wrap"><div class="partner-links">'+
     '<span class="partner-hd">관련 국민체육진흥공단 서비스</span>'+
