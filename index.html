@@ -1714,6 +1714,27 @@ function sggOptionsHTML(sido, selected){
     return '<option value="'+r.code+'"'+(selected===r.code?' selected':'')+'>'+esc(r.sigungu)+'</option>';
   }).join("");
 }
+/* CHG-70: «강좌 찾기» 화면의 지역 선택도 종목 찾기(CHG-69)와 같은 이유로 2열로 나눕니다 —
+   첫 select는 시/도(큰 범위), 두 번째 select는 그 시/도 안의 시군구입니다. «지역 전체»는
+   시/도 select의 맨 위 옵션으로 두고, 그걸 고르면 시군구 select는 비활성화됩니다.
+   이 화면은 종목 찾기의 확인창(모달)과 달리 select를 바꾸는 즉시 목록에 반영되므로,
+   confirm 버튼 없이 onchange에서 바로 App.setRegion()을 호출합니다. */
+function regionPicker2HTML(code, allLabel, selAttrs, idBase){
+  var cur = regionOf(code);
+  var curSido = cur ? cur.sido : "__ALL__";
+  var sidoOpts =
+    (allLabel ? '<option value="__ALL__"'+(curSido==="__ALL__"?' selected':'')+'>'+esc(allLabel)+'</option>' : "") +
+    sidoOrder().map(function(sd){
+      return '<option value="'+esc(sd)+'"'+(curSido===sd?' selected':'')+'>'+esc(sd)+'</option>';
+    }).join("");
+  var sggHTML = (curSido==="__ALL__")
+    ? '<option value="all" selected>'+esc(allLabel||"전체")+'</option>'
+    : sggOptionsHTML(curSido, code);
+  return '<select class="sel-f" '+selAttrs+' onchange="App.setRegionSido(this.value)" aria-label="시/도 선택" id="'+idBase+'Sido">'+
+      sidoOpts+'</select>'+
+    '<select class="sel-f" '+selAttrs+' onchange="App.setRegion(this.value)" aria-label="시/군/구 선택" id="'+idBase+'Sgg"'+
+      (curSido==="__ALL__"?' disabled':'')+'>'+sggHTML+'</select>';
+}
 function regionOf(code){
   var key=regionKey(code);
   for(var i=0;i<REGIONS.length;i++) if(REGIONS[i].code===key) return REGIONS[i];
@@ -2383,6 +2404,13 @@ var App={
 
   /* 필터 */
   setRegion:function(v){ state.f.code=v; state.detailId=null; state.picked=[]; state.nation.show=300; persist(); render(); },
+  /* CHG-70: 시/도 select를 바꾸면 그 시/도의 첫 시군구로 옮긴다(«전체»를 고르면 지역 전체로) —
+     매번 App.setRegion()을 그대로 타므로 부수효과(picked 비우기 등)가 똑같이 적용된다. */
+  setRegionSido:function(sido){
+    if(sido==="__ALL__"){ App.setRegion("all"); return; }
+    var first=regionsInSido(sido)[0];
+    App.setRegion(first?first.code:"all");
+  },
   setMonths:function(v){ state.f.months=Number(v); persist(); render(); },
   setSort:function(v){ state.f.sort=v; render(); },
   setVerdictFilter:function(v){ state.f.verdict=(state.f.verdict===v?"":v); persist(); render(); },
@@ -3048,9 +3076,8 @@ function mapSectionHTML(v){
      «내 위치 사용» 옆에도 같은 지역 선택 콤보를 하나 더 둔다(왼쪽 필터의 지역 선택과 동일하게 동작). */
   var geobar='<div class="geobar">'+geoBtn+
     '<label class="src">지역 '+
-      '<select class="sel-f" style="min-height:32px;width:auto;font-size:13px;padding:0 6px" onchange="App.setRegion(this.value)" aria-label="지도 지역 선택">'+
-      regionOptions(f.code, "지역 전체")+
-      '</select></label>'+
+      regionPicker2HTML(f.code, "지역 전체", 'style="min-height:32px;width:auto;font-size:13px;padding:0 6px"', "geo")+
+    '</label>'+
     (state.geoState==="error"?'<span class="src" style="color:var(--lost)">위치를 가져오지 못했어요. 브라우저 위치 권한을 확인해주세요.</span>':'')+
     (state.geo?('<label class="src">반경 '+
       '<select class="sel-f" style="min-height:32px;width:auto;font-size:13px;padding:0 6px" onchange="App.setRadius(this.value)" aria-label="반경">'+
@@ -3117,9 +3144,9 @@ function coursesHTML(){
   var sports=[]; COURSES.forEach(function(c){ if(sports.indexOf(c.sport)<0) sports.push(c.sport); });
   var filters='<aside class="filters'+(state.filtersOpen?' open':'')+'" id="filters">'+
     '<div class="fgrp"><span class="flbl">'+icon("pin",14)+' 지역</span>'+
-      '<select class="sel-f" style="min-height:42px;font-size:15px" onchange="App.setRegion(this.value)" aria-label="지역">'+
-        regionOptions(f.code, "지역 전체")+
-      '</select></div>'+
+      '<div style="display:flex;flex-direction:column;gap:6px">'+
+        regionPicker2HTML(f.code, "지역 전체", 'style="min-height:42px;font-size:15px;width:100%"', "filt")+
+      '</div></div>'+
     '<div class="fgrp"><span class="flbl">'+icon("search",14)+' 시설·강좌 검색</span>'+
       '<input class="tin" data-fk="q" value="'+esc(f.q)+'" placeholder="예: 태권도" oninput="App.setQuery(this.value)" aria-label="시설 또는 강좌 검색"></div>'+
     '<div class="fgrp"><span class="flbl">'+icon("check",14)+' 판정</span><div class="vchips">'+
