@@ -115,6 +115,10 @@ ul{margin:0;padding-left:18px}
 .hd-auth button{padding:7px 9px;border:0;background:none;border-radius:8px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
 .hd-auth button:hover{background:var(--bg-2);color:var(--ink)}
 .hd-auth button.hd-adm{color:var(--navy)}
+.cart-btn{position:relative;display:flex;align-items:center;gap:6px;margin-left:10px;padding:7px 12px;border:1px solid var(--line);background:#fff;border-radius:999px;font-size:13px;font-weight:700;color:var(--ink-2);cursor:pointer;flex:none}
+.cart-btn:hover{background:var(--bg-2)}
+.cart-badge{position:absolute;top:-6px;right:-6px;background:var(--orange);color:#fff;font-size:11px;font-weight:800;border-radius:999px;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+@media (max-width:760px){.cart-tx{display:none}.cart-btn{padding:7px 9px}}
 .hd-who{display:flex;align-items:center;gap:7px;white-space:nowrap}
 .hd-ava{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex:0 0 auto}
 .hd-nm{font-size:14px;font-weight:700;color:var(--ink)}
@@ -1912,7 +1916,10 @@ var state={
   session:{ user:null, admin:false },
   auth:{ open:false, tab:"user", err:"" },
   /* CHG-65: 장애인스포츠강좌이용권 등록강좌·시설 조인 데이터 (data/dvoucher.json) 로딩 상태 */
-  dv:{ status:"idle" }
+  dv:{ status:"idle" },
+  /* CHG-71: 장바구니(state.picked 재사용) · 예약/결제 시뮬레이션 모달 상태.
+     실제 예약·결제는 이뤄지지 않는 데모이며, 계산은 이 기기 안에서만 일어난다. */
+  cartOpen:false, checkoutStep:"cart", checkoutReceipt:null
 };
 
 function persist(){
@@ -2492,6 +2499,48 @@ var App={
   applyCombo:function(ids){ state.picked=ids.slice(); App.toast("조합을 담았어요"); },
   clearPicks:function(){ state.picked=[]; render(); },
 
+  /* ============================================================
+     CHG-71 장바구니 · 예약/결제 시뮬레이션
+     이 앱은 서버가 없는 단일 HTML 파일이라 실제로 좌석을 예약하거나 카드로 결제할 수 없다.
+     아래 흐름은 «이런 기능이 있다면 이렇게 동작할 것»을 보여주는 데모이며,
+     실제 예약·결제·잔여 지원금 정보가 아니다. 어디에도 전송되지 않고, 이 화면
+     (state.picked → state.rec) 안에서만 계산된다. 실제 신청·결제는 공식 사이트에서 진행해야 한다.
+     ============================================================ */
+  openCart:function(){ state.cartOpen=true; state.checkoutStep="cart"; render(); },
+  closeCart:function(){ state.cartOpen=false; state.checkoutStep="cart"; state.checkoutReceipt=null; render(); },
+  cartRemove:function(id){ App.togglePick(id); },
+  cartGoConfirm:function(){ if(!state.picked.length) return; state.checkoutStep="confirm"; render(); },
+  cartBackToCart:function(){ state.checkoutStep="cart"; render(); },
+  checkoutConfirm:function(){
+    var ids=state.picked.slice(); if(!ids.length) return;
+    var items=[];
+    ids.forEach(function(id){
+      var c=findCourse(id); if(!c) return;
+      if(!state.rec[id]) state.rec[id]=newRec(c);
+      state.rec[id].pay=true;
+      items.push({ name:c.name, facility:c.facility, fee:c.fee });
+    });
+    state.picked=[];
+    state.checkoutReceipt={ items:items, at:new Date().toISOString(), total:items.reduce(function(s,x){return s+(x.fee||0);},0) };
+    state.checkoutStep="done";
+    persist();
+    App.toast("결제 시뮬레이션을 완료했어요(데모) — 실제로 결제되지 않았어요");
+    render();
+  },
+  /* 지난달 강좌 이어듣기 — 자동 이월(carry)과는 별개로, 언제든 지난 기록에서 다시 담을 수 있게 함 */
+  recartLastMonth:function(){
+    if(!state.history.length){ App.toast("지난 기록이 없어요"); return; }
+    var h=state.history[0];
+    var paid=h.items.filter(function(x){ return x.pay; });
+    var src=paid.length? paid : h.items;
+    var added=0;
+    src.forEach(function(x){ if(state.picked.indexOf(x.snap.id)<0){ state.picked.push(x.snap.id); added++; } });
+    if(added) App.toast(ymLabel(h.ym)+"에 들었던 강좌 "+added+"개를 장바구니(데모)에 다시 담았어요");
+    else App.toast("이미 장바구니에 담겨 있어요");
+    state.cartOpen=true; state.checkoutStep="cart";
+    render();
+  },
+
   /* 종목 찾기 */
   setPref:function(k,v){ state.pref[k]=v; persist(); render(); },
   resetPref:function(){ state.pref={together:"",contact:"",place:"",music:"",water:""}; persist(); render(); },
@@ -2607,6 +2656,11 @@ function header(){
       nb("home","혜택 한눈에")+nb("quiz","내 혜택 진단")+nb("match","종목 찾기")+nb("courses","강좌 찾기")+
       nb("records","내 기록")+
     '</nav>'+
+    /* CHG-71: 장바구니(데모) — 어느 화면에서든 담은 강좌를 보고 결제 시뮬레이션으로 이어갈 수 있게 함 */
+    '<button type="button" class="cart-btn" onclick="App.openCart()" aria-label="장바구니(데모) 열기 · 담은 강좌 '+state.picked.length+'개">'+
+      '<span aria-hidden="true">🛒</span><span class="cart-tx">장바구니</span>'+
+      (state.picked.length? '<span class="cart-badge">'+state.picked.length+'</span>' : '')+
+    '</button>'+
     authBarHTML()+
     '<button type="button" class="btn btn-o btn-sm hd-cta" onclick="App.go(\'quiz\')">진단 시작</button>'+
   '</div></header>';
@@ -3796,9 +3850,13 @@ function recordsHTML(){
       ? '<div class="rc-list">'+recs.map(function(r){ return recRowHTML(r,"담기","App.addRecCourse("+j(r.c.id)+")"); }).join("")+'</div>'
       : '<p class="note">강좌를 담거나 종목 찾기·강좌 찾기에서 종목을 골라 보면, 그 기록을 바탕으로 추천이 시작돼요.</p>');
 
-  /* 지난 기록 */
+  /* 지난 기록 — CHG-71: 월이 바뀔 때 자동으로 딸려오는 이월(carry)과 별개로,
+     아무 때나 지난달 강좌를 장바구니(데모)에 다시 담아 결제 시뮬레이션까지 이어갈 수 있게 함 */
   var hist = state.history.length
-    ? '<div class="grp-h" style="margin-top:30px"><h3>지난 기록</h3></div><div class="hist">'+
+    ? '<div class="grp-h" style="margin-top:30px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">'+
+        '<h3>지난 기록</h3>'+
+        '<button type="button" class="btn btn-ol btn-sm" onclick="App.recartLastMonth()"><span aria-hidden="true">🔁</span> 지난달 강좌 이어듣기(장바구니에 담기)</button>'+
+      '</div><div class="hist">'+
       state.history.map(function(h){
         var tot=sumFee(h.items.map(function(x){return x.snap;})), lost=(h.limit!=null? Math.max(0,h.limit-tot):null);
         return '<div class="hist-row"><b class="mono">'+ymLabel(h.ym)+'</b>'+
@@ -4102,6 +4160,102 @@ function advanceModalHTML(){
 }
 
 /* ============================================================
+   CHG-71 장바구니 · 예약/결제 시뮬레이션 모달
+   [반드시 읽어주세요] 이 앱은 서버가 없는 단일 HTML 파일이다. 실제로 좌석을 예약하거나
+   카드로 결제하는 기능은 없다. 아래 모달은 «장바구니에 여러 강좌를 담고, 결제를 시뮬레이션하면
+   내 기록에 결제 확인으로 표시되고, 남는 지원금이 얼마인지 바로 보여주는» 흐름을
+   KSPO 관계자에게 보여주기 위한 데모다. 모든 계산은 state.picked → state.rec 안에서만
+   일어나고 어디로도 전송되지 않으며, 실제 당겨쓰기 계산기(CHG-17)의 계획 데이터를
+   덮어쓰지 않는다. 화면에는 매 단계마다 "데모" 문구를 반복해서 실제 결제로 오인하지 않게 한다.
+   ============================================================ */
+var CART_DEMO_NOTE = "이 장바구니·결제는 데모예요. 실제로 좌석이 예약되거나 카드로 결제되지 않아요. 실제 신청·결제는 국민체육진흥공단 공식 사이트에서 진행해주세요.";
+
+function cartDemoBanner(){
+  return '<p class="note" style="margin:10px 0 16px;padding:10px 12px;background:var(--warn-soft);color:var(--warn);border-radius:8px;font-weight:700">'+
+    '⚠️ '+esc(CART_DEMO_NOTE)+'</p>';
+}
+function cartRowHTML(c, showRemove){
+  return '<div class="combo-item">'+
+    '<div><span class="nm">'+esc(c.name)+'</span>'+
+      '<div class="dt">'+esc(c.facility)+(c.fee!=null?' · '+won(c.fee):'')+'</div></div>'+
+    (showRemove? '<button type="button" class="icb" onclick="App.cartRemove('+j(c.id)+')" aria-label="'+esc(c.name)+' 장바구니에서 빼기">✕</button>' : '')+
+  '</div>';
+}
+function cartModalHTML(){
+  if(!state.cartOpen) return "";
+  var step=state.checkoutStep||"cart";
+  var L=monthlyLimit(state.answers);
+  var picks=pickedCourses();
+  var usedNow=sumFee(recList());
+  var newOnes=picks.filter(function(c){ return !state.rec[c.id]; });
+  var newTotal=sumFee(newOnes);
+  var cartTotal=pickedTotal();
+  var projected=usedNow+newTotal;
+  var overLimitPick=(L!=null)? picks.filter(function(c){ return c.fee!=null && verdict(c.fee,L).k==="pay"; })[0] : null;
+
+  var head, body;
+  if(step==="cart"){
+    head='장바구니 (데모) · 1/3 담은 강좌 확인';
+    body = !picks.length
+      ? '<p class="note" style="margin-top:8px">아직 담은 강좌가 없어요. 강좌 찾기에서 «담기»를 눌러보세요.</p>'+
+        (state.history.length? '<button type="button" class="btn btn-o btn-sm" style="margin-top:12px" onclick="App.recartLastMonth()">지난달 강좌 다시 담기</button>' : '')+
+        '<button type="button" class="btn btn-g btn-sm" style="margin-top:10px" onclick="App.go(\'courses\');App.closeCart();">강좌 찾으러 가기</button>'
+      : '<div class="combo-list">'+picks.map(function(c){ return cartRowHTML(c,true); }).join("")+'</div>'+
+        '<div class="rtot" style="margin-top:10px"><span>장바구니 합계</span><span class="mono">'+won(cartTotal)+'</span></div>'+
+        (L!=null? gaugeHTML(L, projected, {label:"결제 시뮬레이션 후 "+monthLabel(state.recYM)+" 지원금(예상)"})
+          : '<p class="note" style="margin-top:10px">진단에서 지원 구분을 고르면 남는 지원금을 계산해 드려요.</p>')+
+        (L!=null && projected>L
+          ? (overLimitPick
+              ? '<p class="note" style="margin-top:8px;padding:8px 10px;background:var(--bg-2);border-radius:8px">지원금보다 비싼 강좌가 있어요. '+
+                '<button type="button" class="lnk" onclick="App.closeCart();App.openAdvance('+j(overLimitPick.id)+')">당겨쓰기 계산기 열기</button></p>'
+              : '<p class="note" style="margin-top:8px;padding:8px 10px;background:var(--bg-2);border-radius:8px">여러 강좌를 합치면 지원금을 넘어요. 당겨쓰기 계산기는 강좌 1개가 지원금보다 비쌀 때만 계산할 수 있어요 — 정확한 금액은 공식 사이트에서 확인해주세요.</p>')
+          : '')+
+        '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">'+
+          '<button type="button" class="btn btn-g btn-sm" onclick="App.clearPicks()">장바구니 비우기</button>'+
+          '<button type="button" class="btn btn-o btn-sm" onclick="App.cartGoConfirm()">결제 시뮬레이션 시작</button>'+
+        '</div>';
+  } else if(step==="confirm"){
+    head='결제 시뮬레이션 (데모) · 2/3 확인';
+    body='<div class="combo-list">'+picks.map(function(c){ return cartRowHTML(c,false); }).join("")+'</div>'+
+      '<div class="rtot" style="margin-top:10px"><span>결제 시뮬레이션 총액</span><span class="mono">'+won(cartTotal)+'</span></div>'+
+      cartDemoBanner()+
+      '<p class="note">이것은 데모입니다. 실제 강좌 좌석이 배정되거나 금액이 차감되지 않아요. '+
+        '"모의결제 완료하기"를 누르면 이 강좌들이 <b>내 기록</b>에 «결제 확인»으로 표시되고, '+
+        '남는 지원금 화면이 그 값을 기준으로 다시 계산돼요(모두 이 기기 안에서만).</p>'+
+      '<div style="display:flex;gap:8px;margin-top:16px">'+
+        '<button type="button" class="btn btn-g btn-sm" onclick="App.cartBackToCart()">이전으로</button>'+
+        '<button type="button" class="btn btn-o btn-sm" onclick="App.checkoutConfirm()">모의결제 완료하기</button>'+
+      '</div>';
+  } else {
+    var r=state.checkoutReceipt;
+    var used2=sumFee(recList());
+    head='결제 시뮬레이션 완료 (데모) · 3/3';
+    body = !r ? '<p class="note">완료된 시뮬레이션이 없어요.</p>' :
+      '<div class="combo-list">'+r.items.map(function(x){
+        return '<div class="combo-item"><div><span class="nm">'+esc(x.name)+'</span>'+
+          '<div class="dt">'+esc(x.facility)+(x.fee!=null?' · '+won(x.fee):'')+'</div></div>'+
+          '<span class="chip c-ok">결제 시뮬레이션 완료</span></div>';
+      }).join("")+'</div>'+
+      '<div class="rtot" style="margin-top:10px"><span>결제 시뮬레이션 총액</span><span class="mono">'+won(r.total)+'</span></div>'+
+      (L!=null? gaugeHTML(L, used2, {label:monthLabel(state.recYM)+" 지원금(결제 시뮬레이션 반영 · 데모)"}) : "")+
+      cartDemoBanner()+
+      '<div style="display:flex;gap:8px;margin-top:16px">'+
+        '<button type="button" class="btn btn-o btn-sm" onclick="App.go(\'records\');App.closeCart();">내 기록에서 자세히 보기</button>'+
+        '<button type="button" class="btn btn-g btn-sm" onclick="App.closeCart()">닫기</button>'+
+      '</div>';
+  }
+
+  return '<div class="ov" onclick="App.closeCart()" role="dialog" aria-modal="true" aria-label="장바구니(데모)">'+
+    '<div class="mod" onclick="App.stop(event)">'+
+      '<div class="mod-h"><div><span class="eyebrow" style="color:var(--warn)">데모 · 실제 예약·결제 아님</span>'+
+        '<h2 style="font-size:20px;font-weight:800;margin-top:4px">'+esc(head)+'</h2></div>'+
+        '<button type="button" class="icb" onclick="App.closeCart()" aria-label="닫기">✕</button></div>'+
+      (step==="cart"? cartDemoBanner() : "")+
+      body+
+    '</div></div>';
+}
+
+/* ============================================================
    CHG-22 로그인 모달
    [보안 경계 — 반드시 읽어주세요]
    이 서비스는 서버가 없는 단일 HTML 파일입니다. 아래 인증은 화면 흐름과 권한 분리를
@@ -4269,7 +4423,7 @@ function announce(msg){
   if(el) el.textContent=msg;
 }
 function modalOpenNow(){
-  return !!(state.auth.open || state.advModal || state.modal || (state.matchGate&&state.matchGate.open));
+  return !!(state.auth.open || state.advModal || state.modal || state.cartOpen || (state.matchGate&&state.matchGate.open));
 }
 function focusKeyOf(el){
   try{ return (el && el.getAttribute) ? el.getAttribute("onclick") : null; }catch(e){ return null; }
@@ -4299,7 +4453,7 @@ function renderInner(){
   }
   var html=(state.route==="admin")
     ? '<div class="gov-bar wrap" style="padding:6px 16px;font-size:12px;color:var(--muted)">국민체육진흥공단 · 스포츠강좌이용권 운영자 화면(공모전 데모)</div>'+main+authModalHTML()
-    : header()+main+footer()+modalHTML()+advanceModalHTML()+authModalHTML()+matchGateHTML();
+    : header()+main+footer()+modalHTML()+advanceModalHTML()+authModalHTML()+matchGateHTML()+cartModalHTML();
   if(state.toast) html+='<div class="toast" role="status">'+mascotIMG("good",20,"mascot-toast")+esc(state.toast)+'</div>';
   document.getElementById("app").innerHTML=html;
 
