@@ -1804,7 +1804,7 @@ function estimate(fee, limit, months){
    1개월 안에 실제 수강·출석이 끝나야 합니다. 이 계산기는 결제 전 미리 금액을 가늠해보는
    보조 도구이고, 실제 적용은 공식 결제 시스템에서 이뤄집니다. */
 function nextMonths(n){
-  var p=TODAY.slice(0,7).split("-"); var y=Number(p[0]), m=Number(p[1]);
+  var p=(state.recYM||TODAY.slice(0,7)).split("-");   /* CHG-74: 데이터 기준일이 아니라 실제 이번 달 기준 */ var y=Number(p[0]), m=Number(p[1]);
   var out=[];
   for(var i=0;i<n;i++){
     m++; if(m>12){ m=1; y++; }
@@ -1817,7 +1817,7 @@ function ymLabel(ym){ var p=ym.split("-"); return p[0]+"년 "+Number(p[1])+"월"
 function advancedSumFor(ym){
   var s=0;
   state.advances.forEach(function(r){ r.months.forEach(function(mm){ if(mm.ym===ym) s+=mm.amount; }); });
-  return s;
+  return s+orderPulledFor(ym);   /* CHG-74: 결제하면서 이미 당겨쓴 금액도 뺀다 */
 }
 /* 자부담 금액을 n개월치 미래 지원금으로 최대한 메워보는 미리보기 계산 */
 function previewAdvance(selfAmt, limit, n){
@@ -2571,11 +2571,11 @@ var App={
       : null;
     var order={
       no:orderNo(now), at:now.toISOString(), ym:state.recYM, status:"reserved",
-      method:method, voucherTotal:q.voucherTotal, selfTotal:q.selfTotal, total:q.total,
+      method:method, voucherTotal:q.voucherTotal, pullTotal:q.pullTotal, pull:q.pull, selfTotal:q.selfTotal, total:q.total,
       deadline:isoDate(cancelDeadline(now)),
       items:q.items.map(function(x){
         var c=x.c;
-        return { id:c.id, name:c.name, facility:c.facility, sport:c.sport, fee:c.fee, voucher:x.voucher, self:x.self,
+        return { id:c.id, name:c.name, facility:c.facility, sport:c.sport, fee:c.fee, voucher:x.voucher, pulled:x.pulled||0, self:x.self,
           days:(c.days||[]).slice(), slot:c.slot||"", flexible:!!c.flexible, tel:c.tel||"",
           lat:(c.lat!=null?c.lat:null), lng:(c.lng!=null?c.lng:null), first:isoDate(nextClassDate(c, now)) };
       })
@@ -4253,7 +4253,7 @@ function advanceModalHTML(){
         '<button type="button" class="btn btn-o btn-sm"'+(prev.total<=0?' disabled':'')+' onclick="App.confirmAdvance()">이 계획으로 저장하기</button>'+
       '</div>'+
       '<p class="note" style="margin-top:12px;padding:10px 12px;background:var(--warn-soft);color:var(--warn);border-radius:8px">'+
-        '실제로 있는 제도예요 — 월 지원금보다 비싼 강좌를 들을 때 최대 2개월분 지원금을 합산해 결제할 수 있고, 결제 시 자동 적용돼요(연간 한도 126만원, 유·청소년 이용권만 해당). '+
+        '실제로 있는 제도예요 — 2025년 5월부터 지원금 한도가 3개월 단위(31만 5천원)로 주어져서, 월 지원금보다 비싼 강좌를 들을 때 최대 2개월분 지원금을 합산해 결제할 수 있고, 결제 시 자동 적용돼요(연간 한도 126만원, 유·청소년 이용권만 해당). '+
         '단, <b>선결제는 금지</b>예요 — 결제한 강좌는 1개월 안에 실제로 수강·출석해야 하고, 아직 듣지 않을 강좌를 미리 결제해두는 용도로는 쓸 수 없어요. '+
         '이 계산기는 결제 전에 얼마가 당겨써질지 미리 확인해보는 도구이고, 실제 결제·적용은 공식 카드결제 시스템에서 이뤄져요.</p>'+
     '</div></div>';
@@ -4325,17 +4325,36 @@ function paidThisMonth(){
 function orderablePicks(){
   return pickedCourses().filter(function(c){ return c.fee!=null && !activeOrderFor(c.id); });
 }
-/* 담은 강좌에 이번 달 남은 지원금을 순서대로 배분 → 강좌별 이용권 차감액·본인부담금 */
+/* CHG-74: 결제로 당겨쓴 미래 월 지원금 합(취소된 예약은 제외) */
+function orderPulledFor(ym){
+  var s=0;
+  state.orders.forEach(function(o){ if(o.status!=="reserved" || !o.pull) return;
+    o.pull.forEach(function(p){ if(p.ym===ym) s+=p.amount; }); });
+  return s;
+}
+/* 담은 강좌에 지원금을 순서대로 배분 → 강좌별 이용권 차감액·본인부담금.
+   CHG-74: 공식 제도(2025.5~ 3개월 31.5만원 결제 한도, «지원금 당겨쓰기»)에 맞춰, 이번 달 지원금이
+   모자라면 다음 달·다다음 달 지원금(최대 2개월분)을 결제 시 자동으로 당겨 쓰고, 그래도 넘는 금액만
+   본인부담금이 된다. 장애인 이용권은 당겨쓰기 대상이 아니다. */
 function quoteOrder(list){
   var L=monthlyLimit(state.answers);
-  var remain = L==null? 0 : Math.max(0, L-paidThisMonth());
-  var remainBefore=remain, items=[], vt=0, st=0;
+  var remain = L==null? 0 : Math.max(0, L-paidThisMonth()-orderPulledFor(state.recYM));
+  var canPull = L!=null && state.answers.disability!=="있음";
+  var fut = canPull? [1,2].map(function(k){ var ym=ymAdd(state.recYM,k); return { ym:ym, avail:Math.max(0, L-orderPulledFor(ym)) }; }) : [];
+  var remainBefore=remain, items=[], vt=0, st=0, pt=0, pullMap={};
   list.forEach(function(c){
-    var v=Math.min(c.fee, remain); remain-=v;
-    items.push({ c:c, voucher:v, self:c.fee-v }); vt+=v; st+=c.fee-v;
+    var now=Math.min(c.fee, remain); remain-=now;
+    var need=c.fee-now, pulled=0;
+    fut.forEach(function(f){ if(need<=0) return; var t=Math.min(need,f.avail);
+      if(t>0){ f.avail-=t; need-=t; pulled+=t; pullMap[f.ym]=(pullMap[f.ym]||0)+t; } });
+    var v=now+pulled;
+    items.push({ c:c, voucher:v, now:now, pulled:pulled, self:c.fee-v }); vt+=v; st+=c.fee-v; pt+=pulled;
   });
-  return { L:L, items:items, voucherTotal:vt, selfTotal:st, total:vt+st, remainBefore:remainBefore, remainAfter:remain };
+  var pull=Object.keys(pullMap).sort().map(function(ym){ return { ym:ym, amount:pullMap[ym] }; });
+  return { L:L, items:items, voucherTotal:vt, nowTotal:vt-pt, pullTotal:pt, pull:pull, selfTotal:st, total:vt+st,
+    remainBefore:remainBefore, remainAfter:remain, canPull:canPull };
 }
+function pullLabel(pull){ return pull.map(function(p){ return monthLabel(p.ym); }).join("·"); }
 function checkoutBlocker(q){
   if(!q.items.length) return "결제할 강좌가 없어요";
   if(q.L==null) return "지원 구분을 먼저 골라주세요";
@@ -4383,9 +4402,11 @@ function priceBoxHTML(q, title){
   return '<div class="paybox">'+
     (title?'<b style="font-size:14px">'+esc(title)+'</b>':'')+
     '<div class="prow"><span>총 수강료</span><span class="mono">'+won(q.total)+'</span></div>'+
-    '<div class="prow minus"><span>스포츠강좌이용권 지원금</span><span class="mono">− '+won(q.voucherTotal)+'</span></div>'+
+    '<div class="prow minus"><span>이번 달 지원금</span><span class="mono">− '+won(q.nowTotal)+'</span></div>'+
+    (q.pullTotal>0?'<div class="prow minus"><span>지원금 당겨쓰기 <span class="src">('+esc(pullLabel(q.pull))+' 지원금)</span></span><span class="mono">− '+won(q.pullTotal)+'</span></div>':'')+
     '<div class="prow ptot"><span>본인부담금(자부담)</span><span class="mono" style="color:'+(q.selfTotal>0?'var(--lost)':'var(--ok)')+'">'+won(q.selfTotal)+'</span></div>'+
-    (q.L!=null?'<p class="src" style="margin-top:6px">이번 달 남은 지원금 '+won(q.remainBefore)+' → 결제 후 '+won(q.remainAfter)+'</p>':'')+
+    (q.L!=null?'<p class="src" style="margin-top:6px">이번 달 남은 지원금 '+won(q.remainBefore)+' → 결제 후 '+won(q.remainAfter)+
+      (q.pullTotal>0?' · '+esc(pullLabel(q.pull))+' 지원금에서 '+won(q.pullTotal)+'을 미리 당겨 써서 그만큼 그달 지원금이 줄어요':'')+'</p>':'')+
   '</div>';
 }
 function payMethodHTML(q){
@@ -4407,7 +4428,7 @@ function payMethodHTML(q){
   return '<div class="paybox"><b style="font-size:14px">본인부담금 '+won(q.selfTotal)+' 결제수단</b>'+
     '<div class="opts" style="margin-top:8px">'+tile("card","신용·체크카드","카드사 선택")+tile("bank","계좌이체","은행 선택")+'</div>'+
     detail+
-    '<p class="src" style="margin-top:8px">지원금 '+won(q.voucherTotal)+'은 스포츠강좌이용권 카드로 먼저 결제돼요.</p></div>';
+    '<p class="src" style="margin-top:8px">지원금 '+won(q.voucherTotal)+(q.pullTotal>0?'(당겨쓰기 '+won(q.pullTotal)+' 포함)':'')+'은 스포츠강좌이용권 카드로 먼저 결제돼요.</p></div>';
 }
 function agreeHTML(){
   var co=state.checkout, all=co.agreeTerms&&co.agreePriv;
@@ -4422,7 +4443,8 @@ function agreeHTML(){
         '· 결제취소는 <b>전액 취소</b>만 가능해요. 일부만 들은 경우는 시설과 직접 정산해요.<br>'+
         '· 취소 요청 기한: 1~7일 결제 → 13일, 8~14일 → 20일, 15~21일 → 27일, 22일~말일 → 다음 달 6일<br>'+
         '· 취소 요청 후 가맹시설이 승인해야 환불돼요. 기한이 지나면 시설을 통해 상담센터에 요청해야 해요.<br>'+
-        '· 지원금은 강좌 수강료에만 쓸 수 있고, 남은 지원금은 이월·현금화되지 않아요.<br>'+
+        '· 월 지원금보다 많이 결제하면 다음 달·다다음 달 지원금이 자동으로 당겨써져요(최대 2개월분, 3개월 31.5만원 한도). 당겨쓰기로 아직 듣지 않을 강좌를 미리 결제하는 선결제는 금지예요.<br>'+
+        '· 지원금은 강좌 수강료에만 쓸 수 있고, 쓰지 않은 달의 지원금은 이월·현금화되지 않아요.<br>'+
         '· 12월은 연말 정산 때문에 10일까지만 결제할 수 있어요.</div>':'')+
     '</div></div>';
 }
@@ -4446,7 +4468,7 @@ function orderItemsHTML(o){
         '<div><b>'+esc(x.name)+'</b><div class="src">'+esc(x.facility)+' · '+esc(schedLabel(x))+'</div></div>'+
         '<span class="mono" style="font-weight:700;white-space:nowrap">'+won(x.fee)+'</span></div>'+
       '<div class="src" style="margin-top:4px">첫 수업 <b>'+esc(fmtDay(parseIso(x.first)))+'</b> <span class="chip c-navy">'+esc(dDay(x.first))+'</span>'+
-        ' · 지원금 '+won(x.voucher)+(x.self?' · 본인부담 '+won(x.self):'')+'</div>'+
+        ' · 지원금 '+won(x.voucher)+(x.pulled?' (당겨쓰기 '+won(x.pulled)+' 포함)':'')+(x.self?' · 본인부담 '+won(x.self):'')+'</div>'+
       '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'+mapLink(x)+telLink(x)+'</div>'+
     '</div>';
   }).join("");
@@ -4456,6 +4478,7 @@ function payInfoHTML(o){
     '<div class="prow"><span>예약번호</span><span class="mono">'+esc(o.no)+'</span></div>'+
     '<div class="prow"><span>결제일시</span><span class="mono">'+esc(fmtDateTime(o.at))+'</span></div>'+
     '<div class="prow"><span>이용권 결제</span><span><span class="mono">'+won(o.voucherTotal)+'</span> <span class="src">스포츠강좌이용권 카드</span></span></div>'+
+    (o.pullTotal>0?'<div class="prow"><span class="src">└ 지원금 당겨쓰기</span><span class="src">'+esc(pullLabel(o.pull))+' 지원금 '+won(o.pullTotal)+'</span></div>':'')+
     '<div class="prow"><span>본인부담 결제</span><span><span class="mono">'+won(o.selfTotal)+'</span> <span class="src">'+esc(methodLabel(o.method))+'</span></span></div>'+
     '<div class="prow ptot"><span>총 결제 금액</span><span class="mono">'+won(o.total)+'</span></div>'+
   '</div>';
@@ -4492,7 +4515,7 @@ function cartModalHTML(){
     body='<div class="paybox"><b style="font-size:14px">수강 강좌 '+q.items.length+'개</b>'+
         '<div class="combo-list" style="margin-top:6px">'+q.items.map(function(x){
           return cartRowHTML(x.c,false,'<div class="src" style="margin-top:2px">첫 수업 예정 '+esc(fmtDay(nextClassDate(x.c,new Date())))+
-            ' · 지원금 '+won(x.voucher)+(x.self?' · 본인부담 <b style="color:var(--lost)">'+won(x.self)+'</b>':'')+'</div>');
+            ' · 지원금 '+won(x.voucher)+(x.pulled?' (당겨쓰기 '+won(x.pulled)+' 포함)':'')+(x.self?' · 본인부담 <b style="color:var(--lost)">'+won(x.self)+'</b>':'')+'</div>');
         }).join("")+'</div></div>'+
       '<div class="paybox"><div class="prow"><span>수강자</span><span>'+esc(who)+'</span></div>'+
         '<div class="prow"><span>이용권 결제 카드</span><span>스포츠강좌이용권 카드(신한)</span></div></div>'+
@@ -4581,7 +4604,7 @@ function orderModalHTML(){
       '</div></div>'+
       '<div class="paybox"><b style="font-size:14px">환불 예정</b>'+
         '<div class="prow"><span>스포츠강좌이용권 지원금</span><span class="mono">'+won(o.voucherTotal)+'</span></div>'+
-        '<p class="src" style="margin:-2px 0 4px">이번 달 지원금 한도로 되돌아가요</p>'+
+        '<p class="src" style="margin:-2px 0 4px">'+(o.pullTotal>0? '당겨 쓴 '+esc(pullLabel(o.pull))+' 지원금 '+won(o.pullTotal)+'을 포함해 원래 달의 지원금으로 되돌아가요' : '이번 달 지원금 한도로 되돌아가요')+'</p>'+
         '<div class="prow"><span>본인부담금</span><span class="mono">'+won(o.selfTotal)+'</span></div>'+
         (o.selfTotal? '<p class="src" style="margin:-2px 0 4px">'+esc(methodLabel(o.method))+'(으)로 환불 · 카드사·은행에 따라 영업일 기준 3~7일</p>':'')+
         '<div class="prow ptot"><span>총 환불 금액</span><span class="mono">'+won(o.total)+'</span></div>'+
@@ -4593,7 +4616,7 @@ function orderModalHTML(){
     head="취소 요청 완료";
     body='<div style="text-align:center"><div class="done-ic" style="background:var(--muted)" aria-hidden="true">✓</div>'+
         '<h3 style="font-size:19px;font-weight:800">예약이 취소되었습니다</h3>'+
-        '<p class="note" style="margin-top:4px">가맹시설 승인 후 환불돼요. 지원금 '+won(o.voucherTotal)+'은 이번 달 한도로 돌아왔어요.</p></div>'+
+        '<p class="note" style="margin-top:4px">가맹시설 승인 후 환불돼요. 지원금 '+won(o.voucherTotal)+'은 원래 달의 한도로 돌아왔어요.</p></div>'+
       '<div class="paybox"><div class="prow"><span>예약번호</span><span class="mono">'+esc(o.no)+'</span></div>'+
         '<div class="prow"><span>취소 사유</span><span>'+esc(o.cancelReason||"")+'</span></div>'+
         '<div class="prow ptot"><span>환불 예정 금액</span><span class="mono">'+won(o.total)+'</span></div></div>'+
