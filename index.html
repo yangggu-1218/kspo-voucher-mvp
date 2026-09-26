@@ -119,6 +119,30 @@ ul{margin:0;padding-left:18px}
 .cart-btn:hover{background:var(--bg-2)}
 .cart-badge{position:absolute;top:-6px;right:-6px;background:var(--orange);color:#fff;font-size:11px;font-weight:800;border-radius:999px;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px}
 @media (max-width:760px){.cart-tx{display:none}.cart-btn{padding:7px 9px}}
+.stepbar{display:flex;gap:6px;margin:2px 0 14px;font-size:12px;font-weight:700;color:var(--muted)}
+.stepbar span{flex:1;text-align:center;padding:6px 0;border-bottom:3px solid var(--line)}
+.stepbar span.on{color:var(--navy);border-color:var(--navy)}
+.stepbar span.done{color:var(--ok);border-color:var(--ok)}
+.paybox{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px;background:#fff}
+.prow{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px}
+.prow.minus span:last-child{color:var(--navy)}
+.prow.ptot{border-top:1px dashed var(--line);margin-top:4px;padding-top:9px;font-weight:800;font-size:16px}
+.payd{margin-top:10px}
+.payd .src{display:block;margin-bottom:4px}
+.paybar{display:flex;gap:8px;align-items:center;margin-top:16px}
+.terms{margin:8px 0 4px 30px;padding:10px 12px;background:var(--bg-2);border-radius:8px;font-size:12.5px;line-height:1.7;color:var(--ink-2)}
+.spin{width:44px;height:44px;border:4px solid var(--bg-2);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;margin:18px auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.done-ic{width:56px;height:56px;border-radius:50%;background:var(--ok);color:#fff;font-size:30px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:4px auto 10px}
+.oitem{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.ord{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#fff}
+.ord-h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.ord-tabs{display:flex;gap:6px;margin:10px 0 12px;flex-wrap:wrap}
+.tl{list-style:none;padding:0;margin:10px 0 0;display:flex;flex-direction:column;gap:10px}
+.tl li{display:flex;gap:10px;align-items:flex-start;font-size:13px}
+.tl li i{width:10px;height:10px;border-radius:50%;background:var(--line);margin-top:4px;flex:none}
+.tl li.on i{background:var(--ok)}
+.rec-st{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #BFDDCC;border-radius:9px;background:var(--ok-soft);font-size:14px;font-weight:600;color:var(--ok)}
 .hd-who{display:flex;align-items:center;gap:7px;white-space:nowrap}
 .hd-ava{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex:0 0 auto}
 .hd-nm{font-size:14px;font-weight:700;color:var(--ink)}
@@ -1919,7 +1943,10 @@ var state={
   dv:{ status:"idle" },
   /* CHG-71: 장바구니(state.picked 재사용) · 예약/결제 시뮬레이션 모달 상태.
      실제 예약·결제는 이뤄지지 않는 데모이며, 계산은 이 기기 안에서만 일어난다. */
-  cartOpen:false, checkoutStep:"cart", checkoutReceipt:null
+  cartOpen:false, checkoutStep:"cart", checkoutReceipt:null,
+  /* CHG-73: 주문서 입력값 · 예약/결제 내역 · 내역 상세/취소 창 */
+  checkout:{ method:"card", card:"신한카드", plan:"일시불", bank:"신한은행", agreeTerms:false, agreePriv:false, showTerms:false },
+  orders:[], orderTab:"all", orderView:null
 };
 
 function persist(){
@@ -1927,7 +1954,7 @@ function persist(){
     localStorage.setItem(STORE, JSON.stringify({
       answers:state.answers, rec:state.rec, f:state.f,
       recYM:state.recYM, history:state.history, carry:state.carry, sig:state.sig,
-      pref:state.pref, demand:state.demand, advances:state.advances,
+      pref:state.pref, demand:state.demand, advances:state.advances, orders:state.orders,
       user:state.session.user
     }));
   }catch(e){}
@@ -1946,6 +1973,7 @@ function restore(){
     if(d.pref) state.pref=Object.assign(state.pref,d.pref);
     if(Array.isArray(d.demand)) state.demand=d.demand;
     if(Array.isArray(d.advances)) state.advances=d.advances;
+    if(Array.isArray(d.orders)) state.orders=d.orders.filter(function(o){ return o && o.no && Array.isArray(o.items); });
     if(d.user && d.user.name) state.session.user=d.user;
   }catch(e){}
 }
@@ -2500,34 +2528,72 @@ var App={
   clearPicks:function(){ state.picked=[]; render(); },
 
   /* ============================================================
-     CHG-71 장바구니 · 예약/결제 시뮬레이션
-     이 앱은 서버가 없는 단일 HTML 파일이라 실제로 좌석을 예약하거나 카드로 결제할 수 없다.
-     아래 흐름은 «이런 기능이 있다면 이렇게 동작할 것»을 보여주는 데모이며,
-     실제 예약·결제·잔여 지원금 정보가 아니다. 어디에도 전송되지 않고, 이 화면
-     (state.picked → state.rec) 안에서만 계산된다. 실제 신청·결제는 공식 사이트에서 진행해야 한다.
+     CHG-71/73 장바구니 → 주문서 → 결제 → 예약 완료 → 예약·결제 내역 → 취소
+     서버가 없는 단일 HTML 파일이라 실제 카드 승인·계좌 출금은 일어나지 않는다.
+     «결제하기»를 누르면 잠깐 처리 중 화면을 보여준 뒤 예약을 확정한 것으로 기록하고
+     (state.orders), 담은 강좌를 내 기록에 결제 완료로 옮긴다. 모든 값은 이 기기에만 저장된다.
+     결제취소 기한·전액취소·시설 승인 규칙은 공식 사이트(svoucher.kspo.or.kr) 안내를 따른다.
      ============================================================ */
   openCart:function(){ state.cartOpen=true; state.checkoutStep="cart"; render(); },
-  closeCart:function(){ state.cartOpen=false; state.checkoutStep="cart"; state.checkoutReceipt=null; render(); },
-  cartRemove:function(id){ App.togglePick(id); },
-  cartGoConfirm:function(){ if(!state.picked.length) return; state.checkoutStep="confirm"; render(); },
-  cartBackToCart:function(){ state.checkoutStep="cart"; render(); },
-  checkoutConfirm:function(){
-    var ids=state.picked.slice(); if(!ids.length) return;
-    var items=[];
-    ids.forEach(function(id){
-      var c=findCourse(id); if(!c) return;
-      if(!state.rec[id]) state.rec[id]=newRec(c);
-      state.rec[id].pay=true;
-      items.push({ name:c.name, facility:c.facility, fee:c.fee });
-    });
-    state.picked=[];
-    state.checkoutReceipt={ items:items, at:new Date().toISOString(), total:items.reduce(function(s,x){return s+(x.fee||0);},0) };
-    state.checkoutStep="done";
-    persist();
-    App.toast("결제가 완료됐어요");
+  closeCart:function(){
+    if(state.checkoutStep==="processing") return;   /* 결제 처리 중에는 닫지 않음 */
+    state.cartOpen=false; state.checkoutStep="cart"; state.checkoutReceipt=null;
+    state.checkout.agreeTerms=false; state.checkout.agreePriv=false; state.checkout.showTerms=false;
     render();
   },
-  /* 지난달 강좌 이어듣기 — 자동 이월(carry)과는 별개로, 언제든 지난 기록에서 다시 담을 수 있게 함 */
+  cartRemove:function(id){ App.togglePick(id); },
+  cartGoConfirm:function(){
+    if(!state.picked.length) return;
+    if(!orderablePicks().length){ App.toast("이미 예약한 강좌만 담겨 있어요"); return; }
+    state.checkoutStep="confirm"; render();
+  },
+  cartBackToCart:function(){ state.checkoutStep="cart"; render(); },
+  setPayMethod:function(m){ state.checkout.method=m; render(); },
+  setPayField:function(k,v){ state.checkout[k]=v; render(); },
+  toggleAgree:function(k){
+    if(k==="all"){ var on=!(state.checkout.agreeTerms&&state.checkout.agreePriv); state.checkout.agreeTerms=on; state.checkout.agreePriv=on; }
+    else state.checkout[k]=!state.checkout[k];
+    render();
+  },
+  toggleTerms:function(){ state.checkout.showTerms=!state.checkout.showTerms; render(); },
+  checkoutConfirm:function(){
+    if(state.checkoutStep==="processing") return;
+    var q=quoteOrder(orderablePicks());
+    var why=checkoutBlocker(q);
+    if(why){ App.toast(why); return; }
+    state.checkoutStep="processing"; render();
+    setTimeout(function(){ App._finishOrder(q); }, 1200);
+  },
+  _finishOrder:function(q){
+    var now=new Date(), co=state.checkout;
+    var method = q.selfTotal>0
+      ? (co.method==="bank" ? { type:"bank", name:co.bank } : { type:"card", name:co.card, plan:co.plan })
+      : null;
+    var order={
+      no:orderNo(now), at:now.toISOString(), ym:state.recYM, status:"reserved",
+      method:method, voucherTotal:q.voucherTotal, selfTotal:q.selfTotal, total:q.total,
+      deadline:isoDate(cancelDeadline(now)),
+      items:q.items.map(function(x){
+        var c=x.c;
+        return { id:c.id, name:c.name, facility:c.facility, sport:c.sport, fee:c.fee, voucher:x.voucher, self:x.self,
+          days:(c.days||[]).slice(), slot:c.slot||"", flexible:!!c.flexible, tel:c.tel||"",
+          lat:(c.lat!=null?c.lat:null), lng:(c.lng!=null?c.lng:null), first:isoDate(nextClassDate(c, now)) };
+      })
+    };
+    q.items.forEach(function(x){
+      var id=x.c.id;
+      if(!state.rec[id]) state.rec[id]=newRec(x.c);
+      state.rec[id].pay=true; state.rec[id].orderNo=order.no;
+      var k=state.picked.indexOf(id); if(k>=0) state.picked.splice(k,1);
+    });
+    state.orders.unshift(order);
+    if(state.orders.length>50) state.orders=state.orders.slice(0,50);
+    state.checkoutReceipt=order.no;
+    state.checkoutStep="done";
+    co.agreeTerms=false; co.agreePriv=false; co.showTerms=false;
+    persist(); render();
+  },
+  /* 지난달 강좌 다시 신청 — 자동 이월(carry)과는 별개로, 언제든 지난 기록에서 다시 담을 수 있게 함 */
   recartLastMonth:function(){
     if(!state.history.length){ App.toast("지난 기록이 없어요"); return; }
     var h=state.history[0];
@@ -2539,6 +2605,34 @@ var App={
     else App.toast("이미 장바구니에 담겨 있어요");
     state.cartOpen=true; state.checkoutStep="cart";
     render();
+  },
+  /* 예약·결제 내역 */
+  setOrderTab:function(t){ state.orderTab=t; render(); },
+  openOrder:function(no){ state.orderView={ no:no, step:"detail", reason:"", memo:"" }; render(); },
+  closeOrder:function(){ state.orderView=null; render(); },
+  orderCancelStart:function(){ if(state.orderView){ state.orderView.step="cancel"; render(); } },
+  orderCancelBack:function(){ if(state.orderView){ state.orderView.step="detail"; render(); } },
+  setCancelReason:function(r){ if(state.orderView){ state.orderView.reason=r; render(); } },
+  orderCancelConfirm:function(){
+    var v=state.orderView; if(!v) return;
+    var o=findOrder(v.no); if(!o) return;
+    if(!v.reason){ App.toast("취소 사유를 골라주세요"); return; }
+    if(!canCancelOrder(o)){ App.toast("취소 요청 기한이 지났어요"); return; }
+    o.status="cancelled"; o.cancelAt=new Date().toISOString(); o.cancelReason=v.reason;
+    o.items.forEach(function(x){ var r=state.rec[x.id]; if(r && r.orderNo===o.no) delete state.rec[x.id]; });
+    v.step="cancelled";
+    persist(); render();
+  },
+  addCalendar:function(no){
+    var o=findOrder(no); if(!o) return;
+    try{
+      var blob=new Blob([icsOf(o)],{type:"text/calendar;charset=utf-8"});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement("a"); a.href=url; a.download="수강일정_"+o.no+".ics";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 1000);
+      App.toast("첫 수업 일정을 캘린더 파일로 저장했어요");
+    }catch(e){ App.toast("이 브라우저에서는 캘린더 파일을 만들 수 없어요"); }
   },
 
   /* 종목 찾기 */
@@ -3261,7 +3355,7 @@ function coursesHTML(){
         }).join("")+
         '<button type="button" class="actchip" style="background:var(--bg-2);color:var(--muted)" onclick="App.clearPicks()">전체 해제</button>'+
       '</div>'+
-      '<button type="button" class="btn btn-o btn-sm" style="margin-top:12px" onclick="App.registerPicked()">이 조합 내 기록에 담기</button>'
+      '<button type="button" class="btn btn-o btn-sm" style="margin-top:12px" onclick="App.openCart()">장바구니에서 주문하기</button>'
       :'')+
     '</div>';
 
@@ -3810,14 +3904,19 @@ function recordsHTML(){
   var cards=ids.map(function(id){
     var c=recCourse(id); if(!c) return "";
     var r=state.rec[id];
+    /* CHG-73: 주문서로 결제한 강좌는 «결제 확인» 수동 토글 대신 예약 상태를 보여주고, ✕ 대신 예약 상세(취소)로 연결 */
+    var ord=activeOrderFor(id), oit=ord? ord.items.filter(function(x){ return x.id===id; })[0] : null;
     return '<article class="rec">'+
       '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">'+
         '<div><h3 style="font-size:17px;font-weight:800">'+esc(c.name)+'</h3>'+
-        '<p class="note">'+esc(c.facility+" · "+c.sport)+(c.fee!=null?" · "+won(c.fee):"")+'</p></div>'+
-        '<button type="button" class="icb" onclick="App.removeRec('+j(id)+')" aria-label="삭제">✕</button>'+
+        '<p class="note">'+esc(c.facility+" · "+c.sport)+(c.fee!=null?" · "+won(c.fee):"")+'</p>'+
+        '<p class="src">'+esc(schedLabel(c))+(oit?' · 첫 수업 '+esc(fmtDay(parseIso(oit.first))):'')+'</p></div>'+
+        (ord? '<button type="button" class="btn btn-g btn-sm" onclick="App.openOrder('+j(ord.no)+')">예약 상세</button>'
+             : '<button type="button" class="icb" onclick="App.removeRec('+j(id)+')" aria-label="삭제">✕</button>')+
       '</div>'+
-      '<button type="button" class="tgl'+(r.pay?' on':'')+'" onclick="App.toggleRec('+j(id)+',\'pay\')" aria-pressed="'+r.pay+'">'+
-        '<span>결제 확인</span><span>'+(r.pay?'확인함':'미확인')+'</span></button>'+
+      (ord? '<div class="rec-st"><span>'+esc(orderStatus(ord).t)+'</span><span class="mono" style="font-size:12px">'+esc(ord.no)+'</span></div>'
+        : '<button type="button" class="tgl'+(r.pay?' on':'')+'" onclick="App.toggleRec('+j(id)+',\'pay\')" aria-pressed="'+r.pay+'">'+
+          '<span>결제 확인</span><span>'+(r.pay?'확인함':'미확인')+'</span></button>')+
       (function(){ var st=attStats(c, r.attDays, state.recYM), pct=st.rate!=null? Math.min(100,Math.round(st.rate*100)) : null;
         return '<div class="att-sum"><span>'+esc(attLabel(st))+'</span>'+
           (pct!=null? '<span class="att-bar"><i style="width:'+pct+'%"></i></span>' : '')+'</div>'; })()+
@@ -3855,7 +3954,7 @@ function recordsHTML(){
   var hist = state.history.length
     ? '<div class="grp-h" style="margin-top:30px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">'+
         '<h3>지난 기록</h3>'+
-        '<button type="button" class="btn btn-ol btn-sm" onclick="App.recartLastMonth()"><span aria-hidden="true">🔁</span> 지난달 강좌 이어듣기(장바구니에 담기)</button>'+
+        '<button type="button" class="btn btn-ol btn-sm" onclick="App.recartLastMonth()"><span aria-hidden="true">🔁</span> 지난달 강좌 다시 신청하기</button>'+
       '</div><div class="hist">'+
       state.history.map(function(h){
         var tot=sumFee(h.items.map(function(x){return x.snap;})), lost=(h.limit!=null? Math.max(0,h.limit-tot):null);
@@ -3883,6 +3982,7 @@ function recordsHTML(){
     '<section>'+
       '<h1 class="sec-t">'+(state.session.user? esc(state.session.user.name)+'님의 기록' : '내 기록')+
         ' <span class="chip c-navy" style="vertical-align:6px">'+ymLabel(state.recYM)+'</span></h1>'+
+      ordersHTML()+
       carryHTML()+
       gauge+
       (ids.length? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">'+cards+'</div>'+calendarHTML()+planBtn
@@ -4160,84 +4260,368 @@ function advanceModalHTML(){
 }
 
 /* ============================================================
-   CHG-71 장바구니 · 결제 모달 (CHG-72: 공모전 심사용 MVP 톤에 맞춰 "데모/시뮬레이션" 라벨을
-   화면 문구에서 걷어내고 일반적인 쇼핑몰식 결제 흐름처럼 보이게 다듬음.
-   실제로는 여전히 카드 결제·좌석 예약이 이뤄지지 않으며, 계산은 이 기기 안에서만
-   state.picked → state.rec 로 옮겨질 뿐이다 — 이 사실은 코드 주석과 하단 정책 안내
-   문구(연간 한도·선결제 금지 등, CHG-17)에는 그대로 남겨 둔다.)
+   CHG-71/73 장바구니 · 주문서 · 결제 · 예약 완료 · 예약 내역
+   서버가 없는 단일 HTML 파일이라 실제 카드 승인·계좌 출금은 일어나지 않는다(결제 단계는
+   화면 흐름만 재현). 금액 계산은 실제 제도 규칙을 따른다:
+   · 이용권 지원금이 먼저 차감되고, 넘는 금액이 본인부담금(자부담)이 된다.
+   · 결제취소는 전액 취소만 가능하고, 결제일에 따라 정해진 기한까지 요청해야 하며
+     가맹시설의 취소 승인이 필요하다(svoucher.kspo.or.kr 안내 기준).
    ============================================================ */
-function cartRowHTML(c, showRemove){
+var CARD_COS=["신한카드","KB국민카드","삼성카드","현대카드","롯데카드","하나카드","우리카드","BC카드","NH농협카드"];
+var CARD_PLANS=["일시불","2개월","3개월"];
+var BANKS=["신한은행","KB국민은행","우리은행","하나은행","NH농협은행","IBK기업은행","카카오뱅크","토스뱅크","새마을금고","우체국"];
+var CANCEL_REASONS=["수업 일정이 맞지 않아요","다른 강좌로 바꾸고 싶어요","시설 사정으로 수업이 어려워요","아이가 다니기 어려워졌어요","기타"];
+
+function pad2(n){ return (n<10?"0":"")+n; }
+function isoDate(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+function parseIso(s){ var p=String(s||"").split("-"); return new Date(Number(p[0]),Number(p[1])-1,Number(p[2])); }
+function fmtDay(d){ return (d.getMonth()+1)+"월 "+d.getDate()+"일 ("+WDS[d.getDay()]+")"; }
+function fmtDateTime(iso){ var d=new Date(iso); return d.getFullYear()+"."+pad2(d.getMonth()+1)+"."+pad2(d.getDate())+" "+pad2(d.getHours())+":"+pad2(d.getMinutes()); }
+function todayOnly(){ var n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()); }
+function dDay(iso){ var diff=Math.round((parseIso(iso)-todayOnly())/86400000); return diff>0? "D-"+diff : diff===0? "오늘" : "진행 중"; }
+/* 결제 다음 날부터, 공공데이터의 운영 요일 중 가장 가까운 날을 첫 수업일로 잡는다 */
+function nextClassDate(c, from){
+  var d=new Date(from.getFullYear(),from.getMonth(),from.getDate()+1);
+  var days=(c&&c.days)||[];
+  if(!days.length || c.flexible || days.length===7) return d;
+  for(var i=0;i<14;i++){ if(days.indexOf(WDS[d.getDay()])>=0) return d; d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1); }
+  return d;
+}
+/* 결제취소 요청 기한 — 1~7일 결제→13일, 8~14일→20일, 15~21일→27일, 22일~말일→다음 달 6일 */
+function cancelDeadline(pay){
+  var y=pay.getFullYear(), m=pay.getMonth(), day=pay.getDate();
+  if(day<=7) return new Date(y,m,13);
+  if(day<=14) return new Date(y,m,20);
+  if(day<=21) return new Date(y,m,27);
+  return new Date(y,m+1,6);
+}
+function orderNo(d){ return "SV-"+d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate())+"-"+String(Math.floor(1000+Math.random()*9000)); }
+function findOrder(no){ for(var i=0;i<state.orders.length;i++) if(state.orders[i].no===no) return state.orders[i]; return null; }
+function activeOrderFor(id){
+  for(var i=0;i<state.orders.length;i++){ var o=state.orders[i];
+    if(o.status==="reserved" && o.ym===state.recYM && o.items.some(function(x){ return x.id===id; })) return o; }
+  return null;
+}
+function canCancelOrder(o){ return o.status==="reserved" && todayOnly()<=parseIso(o.deadline); }
+function orderStatus(o){
+  if(o.status==="cancelled") return { t:"취소완료", k:"c-gray" };
+  var started=o.items.some(function(x){ return parseIso(x.first)<=todayOnly(); });
+  return started? { t:"이용중", k:"c-ok" } : { t:"예약완료", k:"c-navy" };
+}
+function methodLabel(m){
+  if(!m) return "본인부담금 없음";
+  return m.type==="bank"? m.name+" 계좌이체" : m.name+" · "+(m.plan||"일시불");
+}
+function schedLabel(x){
+  var slot=(x.slot&&SLOT_LABEL[x.slot])?" · "+SLOT_LABEL[x.slot]:"";
+  if(x.flexible || !x.days || !x.days.length || x.days.length===7) return "자유 이용"+slot;
+  return x.days.join("·")+"요일"+slot;
+}
+/* 이번 달 이미 결제한 금액(내 기록에서 결제 완료인 강좌) */
+function paidThisMonth(){
+  var s=0; Object.keys(state.rec).forEach(function(id){ var r=state.rec[id]; if(r.pay){ var c=recCourse(id); if(c&&c.fee) s+=c.fee; } });
+  return s;
+}
+function orderablePicks(){
+  return pickedCourses().filter(function(c){ return c.fee!=null && !activeOrderFor(c.id); });
+}
+/* 담은 강좌에 이번 달 남은 지원금을 순서대로 배분 → 강좌별 이용권 차감액·본인부담금 */
+function quoteOrder(list){
+  var L=monthlyLimit(state.answers);
+  var remain = L==null? 0 : Math.max(0, L-paidThisMonth());
+  var remainBefore=remain, items=[], vt=0, st=0;
+  list.forEach(function(c){
+    var v=Math.min(c.fee, remain); remain-=v;
+    items.push({ c:c, voucher:v, self:c.fee-v }); vt+=v; st+=c.fee-v;
+  });
+  return { L:L, items:items, voucherTotal:vt, selfTotal:st, total:vt+st, remainBefore:remainBefore, remainAfter:remain };
+}
+function checkoutBlocker(q){
+  if(!q.items.length) return "결제할 강좌가 없어요";
+  if(q.L==null) return "지원 구분을 먼저 골라주세요";
+  if(q.selfTotal>0 && !state.checkout.method) return "본인부담금 결제수단을 골라주세요";
+  if(!state.checkout.agreeTerms || !state.checkout.agreePriv) return "필수 약관에 동의해주세요";
+  return "";
+}
+function icsOf(o){
+  var lines=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//voucher-mvp//KO","CALSCALE:GREGORIAN"];
+  o.items.forEach(function(x){
+    var d=x.first.replace(/-/g,""), e=isoDate(new Date(parseIso(x.first).getTime()+86400000)).replace(/-/g,"");
+    lines.push("BEGIN:VEVENT","UID:"+o.no+"-"+x.id+"@voucher-mvp","DTSTAMP:"+d+"T000000Z",
+      "DTSTART;VALUE=DATE:"+d,"DTEND;VALUE=DATE:"+e,
+      "SUMMARY:"+String(x.name+" 첫 수업 ("+x.facility+")").replace(/[,;\\]/g," "),
+      "DESCRIPTION:예약번호 "+o.no+" / "+schedLabel(x).replace(/[,;\\]/g," "),"END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+function mapLink(x){
+  if(x.lat==null || x.lng==null) return "";
+  return '<a class="btn btn-g btn-sm" href="https://map.kakao.com/link/map/'+encodeURIComponent(x.facility)+','+x.lat+','+x.lng+'" target="_blank" rel="noopener noreferrer">길찾기 ↗</a>';
+}
+function telLink(x){
+  if(!x.tel || x.tel==="정보없음") return "";
+  return '<a class="btn btn-g btn-sm" href="tel:'+esc(String(x.tel).replace(/[^0-9]/g,""))+'">시설 전화</a>';
+}
+
+function stepBarHTML(step){
+  var steps=[["cart","장바구니"],["confirm","주문서"],["done","예약 완료"]];
+  var idx={cart:0,confirm:1,processing:1,done:2}[step]||0;
+  return '<div class="stepbar" aria-label="진행 단계">'+steps.map(function(s,i){
+    return '<span class="'+(i<idx?'done':i===idx?'on':'')+'"'+(i===idx?' aria-current="step"':'')+'>'+(i+1)+'. '+s[1]+'</span>';
+  }).join("")+'</div>';
+}
+function cartRowHTML(c, showRemove, extra){
   return '<div class="combo-item">'+
     '<div><span class="nm">'+esc(c.name)+'</span>'+
-      '<div class="dt">'+esc(c.facility)+(c.fee!=null?' · '+won(c.fee):'')+'</div></div>'+
+      '<div class="dt">'+esc(c.facility)+' · '+esc(schedLabel(c))+(c.fee!=null?' · <span class="mono">'+won(c.fee)+'</span>':' · 가격 확인 필요')+'</div>'+
+      (extra||"")+'</div>'+
     (showRemove? '<button type="button" class="icb" onclick="App.cartRemove('+j(c.id)+')" aria-label="'+esc(c.name)+' 장바구니에서 빼기">✕</button>' : '')+
   '</div>';
 }
+function priceBoxHTML(q, title){
+  return '<div class="paybox">'+
+    (title?'<b style="font-size:14px">'+esc(title)+'</b>':'')+
+    '<div class="prow"><span>총 수강료</span><span class="mono">'+won(q.total)+'</span></div>'+
+    '<div class="prow minus"><span>스포츠강좌이용권 지원금</span><span class="mono">− '+won(q.voucherTotal)+'</span></div>'+
+    '<div class="prow ptot"><span>본인부담금(자부담)</span><span class="mono" style="color:'+(q.selfTotal>0?'var(--lost)':'var(--ok)')+'">'+won(q.selfTotal)+'</span></div>'+
+    (q.L!=null?'<p class="src" style="margin-top:6px">이번 달 남은 지원금 '+won(q.remainBefore)+' → 결제 후 '+won(q.remainAfter)+'</p>':'')+
+  '</div>';
+}
+function payMethodHTML(q){
+  var co=state.checkout;
+  if(q.selfTotal<=0) return '<div class="paybox"><b style="font-size:14px">결제수단</b>'+
+    '<p class="note" style="margin-top:6px">본인부담금이 없어요. 수강료 전액이 <b>스포츠강좌이용권 카드</b> 지원금으로 결제돼요.</p></div>';
+  function tile(v,t,s){ var on=co.method===v;
+    return '<button type="button" class="opt'+(on?' on':'')+'" onclick="App.setPayMethod('+j(v)+')" aria-pressed="'+on+'"><b>'+t+'</b><span>'+s+'</span></button>'; }
+  function sel(k,list,label){
+    return '<select class="sel-f" style="min-height:40px;font-size:14px" aria-label="'+label+'" onchange="App.setPayField('+j(k)+',this.value)">'+
+      list.map(function(x){ return '<option'+(co[k]===x?' selected':'')+'>'+esc(x)+'</option>'; }).join("")+'</select>';
+  }
+  var detail = co.method==="bank"
+    ? '<div class="payd"><label class="src">출금 은행</label>'+sel("bank",BANKS,"출금 은행")+'</div>'
+    : co.method==="card"
+      ? '<div class="payd" style="display:grid;grid-template-columns:2fr 1fr;gap:8px"><div><label class="src">카드사</label>'+sel("card",CARD_COS,"카드사")+'</div>'+
+          '<div><label class="src">할부</label>'+sel("plan",CARD_PLANS,"할부")+'</div></div>'
+      : '';
+  return '<div class="paybox"><b style="font-size:14px">본인부담금 '+won(q.selfTotal)+' 결제수단</b>'+
+    '<div class="opts" style="margin-top:8px">'+tile("card","신용·체크카드","카드사 선택")+tile("bank","계좌이체","은행 선택")+'</div>'+
+    detail+
+    '<p class="src" style="margin-top:8px">지원금 '+won(q.voucherTotal)+'은 스포츠강좌이용권 카드로 먼저 결제돼요.</p></div>';
+}
+function agreeHTML(){
+  var co=state.checkout, all=co.agreeTerms&&co.agreePriv;
+  function box(k,on,t){ return '<button type="button" class="chk'+(on?' on':'')+'" onclick="App.toggleAgree('+j(k)+')" aria-pressed="'+on+'"><span class="box"></span><span>'+t+'</span></button>'; }
+  return '<div class="paybox">'+
+    box("all",all,'<b>전체 동의</b>')+
+    '<div style="padding-left:6px;border-top:1px solid var(--line);margin-top:4px;padding-top:4px">'+
+      box("agreeTerms",co.agreeTerms,'(필수) 수강 규정 및 결제취소·환불 규정 동의')+
+      box("agreePriv",co.agreePriv,'(필수) 가맹시설에 수강자 정보(이름·연락처) 제공 동의')+
+      '<button type="button" class="lnk" style="margin:4px 0 0 30px;font-size:13px" onclick="App.toggleTerms()">'+(co.showTerms?'규정 접기':'규정 보기')+'</button>'+
+      (co.showTerms?'<div class="terms">'+
+        '· 결제취소는 <b>전액 취소</b>만 가능해요. 일부만 들은 경우는 시설과 직접 정산해요.<br>'+
+        '· 취소 요청 기한: 1~7일 결제 → 13일, 8~14일 → 20일, 15~21일 → 27일, 22일~말일 → 다음 달 6일<br>'+
+        '· 취소 요청 후 가맹시설이 승인해야 환불돼요. 기한이 지나면 시설을 통해 상담센터에 요청해야 해요.<br>'+
+        '· 지원금은 강좌 수강료에만 쓸 수 있고, 남은 지원금은 이월·현금화되지 않아요.<br>'+
+        '· 12월은 연말 정산 때문에 10일까지만 결제할 수 있어요.</div>':'')+
+    '</div></div>';
+}
+function orderTimelineHTML(o){
+  var first=o.items.map(function(x){return x.first;}).sort()[0];
+  var steps=[
+    ["결제 완료", fmtDateTime(o.at), true],
+    ["가맹시설 수강 확인", "시설에서 수강생 명단을 확인해요", true],
+    ["첫 수업", first? fmtDay(parseIso(first))+" · "+dDay(first) : "", !!(first && parseIso(first)<=todayOnly())],
+    ["출석 체크", "내 기록 달력에서 다녀온 날을 눌러요", false],
+    ["다음 달 재수강", "결제한 강좌는 다음 달 자동으로 이어서 신청할 수 있어요", false]
+  ];
+  return '<ol class="tl">'+steps.map(function(s){
+    return '<li class="'+(s[2]?'on':'')+'"><i></i><div><b>'+esc(s[0])+'</b><br><span class="src">'+esc(s[1])+'</span></div></li>';
+  }).join("")+'</ol>';
+}
+function orderItemsHTML(o){
+  return o.items.map(function(x){
+    return '<div class="oitem">'+
+      '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'+
+        '<div><b>'+esc(x.name)+'</b><div class="src">'+esc(x.facility)+' · '+esc(schedLabel(x))+'</div></div>'+
+        '<span class="mono" style="font-weight:700;white-space:nowrap">'+won(x.fee)+'</span></div>'+
+      '<div class="src" style="margin-top:4px">첫 수업 <b>'+esc(fmtDay(parseIso(x.first)))+'</b> <span class="chip c-navy">'+esc(dDay(x.first))+'</span>'+
+        ' · 지원금 '+won(x.voucher)+(x.self?' · 본인부담 '+won(x.self):'')+'</div>'+
+      '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'+mapLink(x)+telLink(x)+'</div>'+
+    '</div>';
+  }).join("");
+}
+function payInfoHTML(o){
+  return '<div class="paybox">'+
+    '<div class="prow"><span>예약번호</span><span class="mono">'+esc(o.no)+'</span></div>'+
+    '<div class="prow"><span>결제일시</span><span class="mono">'+esc(fmtDateTime(o.at))+'</span></div>'+
+    '<div class="prow"><span>이용권 결제</span><span><span class="mono">'+won(o.voucherTotal)+'</span> <span class="src">스포츠강좌이용권 카드</span></span></div>'+
+    '<div class="prow"><span>본인부담 결제</span><span><span class="mono">'+won(o.selfTotal)+'</span> <span class="src">'+esc(methodLabel(o.method))+'</span></span></div>'+
+    '<div class="prow ptot"><span>총 결제 금액</span><span class="mono">'+won(o.total)+'</span></div>'+
+  '</div>';
+}
+
 function cartModalHTML(){
   if(!state.cartOpen) return "";
   var step=state.checkoutStep||"cart";
-  var L=monthlyLimit(state.answers);
   var picks=pickedCourses();
-  var usedNow=sumFee(recList());
-  var newOnes=picks.filter(function(c){ return !state.rec[c.id]; });
-  var newTotal=sumFee(newOnes);
-  var cartTotal=pickedTotal();
-  var projected=usedNow+newTotal;
-  var overLimitPick=(L!=null)? picks.filter(function(c){ return c.fee!=null && verdict(c.fee,L).k==="pay"; })[0] : null;
-
+  var q=quoteOrder(orderablePicks());
   var head, body;
   if(step==="cart"){
     head='장바구니';
     body = !picks.length
-      ? '<p class="note" style="margin-top:8px">아직 담은 강좌가 없어요. 강좌 찾기에서 «담기»를 눌러보세요.</p>'+
-        (state.history.length? '<button type="button" class="btn btn-o btn-sm" style="margin-top:12px" onclick="App.recartLastMonth()">지난달 강좌 다시 담기</button>' : '')+
-        '<button type="button" class="btn btn-g btn-sm" style="margin-top:10px" onclick="App.go(\'courses\');App.closeCart();">강좌 찾으러 가기</button>'
-      : '<div class="combo-list">'+picks.map(function(c){ return cartRowHTML(c,true); }).join("")+'</div>'+
-        '<div class="rtot" style="margin-top:10px"><span>장바구니 합계</span><span class="mono">'+won(cartTotal)+'</span></div>'+
-        (L!=null? gaugeHTML(L, projected, {label:"결제 후 "+monthLabel(state.recYM)+" 지원금(예상)"})
-          : '<p class="note" style="margin-top:10px">진단에서 지원 구분을 고르면 남는 지원금을 계산해 드려요.</p>')+
-        (L!=null && projected>L
-          ? (overLimitPick
-              ? '<p class="note" style="margin-top:8px;padding:8px 10px;background:var(--bg-2);border-radius:8px">지원금보다 비싼 강좌가 있어요. '+
-                '<button type="button" class="lnk" onclick="App.closeCart();App.openAdvance('+j(overLimitPick.id)+')">당겨쓰기 계산기 열기</button></p>'
-              : '<p class="note" style="margin-top:8px;padding:8px 10px;background:var(--bg-2);border-radius:8px">여러 강좌를 합치면 지원금을 넘어요. 당겨쓰기 계산기는 강좌 1개가 지원금보다 비쌀 때만 계산할 수 있어요 — 정확한 금액은 공식 사이트에서 확인해주세요.</p>')
-          : '')+
-        '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">'+
-          '<button type="button" class="btn btn-g btn-sm" onclick="App.clearPicks()">장바구니 비우기</button>'+
-          '<button type="button" class="btn btn-o btn-sm" onclick="App.cartGoConfirm()">결제하기</button>'+
+      ? '<div class="empty" style="padding:24px 8px">'+
+          '<p class="note">아직 담은 강좌가 없어요. 강좌 찾기에서 «담기»를 눌러보세요.</p>'+
+          '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px">'+
+            (state.history.length? '<button type="button" class="btn btn-ol btn-sm" onclick="App.recartLastMonth()">지난달 강좌 다시 담기</button>' : '')+
+            '<button type="button" class="btn btn-o btn-sm" onclick="App.go(\'courses\');App.closeCart();">강좌 찾으러 가기</button>'+
+          '</div></div>'
+      : '<div class="combo-list">'+picks.map(function(c){
+          var booked=activeOrderFor(c.id);
+          return cartRowHTML(c,true, booked?'<span class="chip c-gray" style="margin-top:4px">이번 달 이미 예약한 강좌 · 주문에서 빠져요</span>':'');
+        }).join("")+'</div>'+
+        (q.L!=null? priceBoxHTML(q,"예상 결제 금액") : '<div class="paybox"><p class="note">지원 구분을 고르면 지원금과 본인부담금을 나눠서 계산해 드려요.</p>'+tierPickHTML()+'</div>')+
+        '<div class="paybar">'+
+          '<button type="button" class="btn btn-g btn-sm" onclick="App.clearPicks()">비우기</button>'+
+          '<button type="button" class="btn btn-o" style="flex:1" onclick="App.cartGoConfirm()"'+(q.items.length?'':' disabled')+'>주문하기 ('+q.items.length+'개)</button>'+
         '</div>';
   } else if(step==="confirm"){
-    head='주문 확인';
-    body='<div class="combo-list">'+picks.map(function(c){ return cartRowHTML(c,false); }).join("")+'</div>'+
-      '<div class="rtot" style="margin-top:10px"><span>결제 금액</span><span class="mono">'+won(cartTotal)+'</span></div>'+
-      '<p class="note">결제를 완료하면 이 강좌들이 <b>내 기록</b>에 «결제 확인»으로 표시되고, 남는 지원금이 다시 계산돼요.</p>'+
-      '<div style="display:flex;gap:8px;margin-top:16px">'+
-        '<button type="button" class="btn btn-g btn-sm" onclick="App.cartBackToCart()">이전으로</button>'+
-        '<button type="button" class="btn btn-o btn-sm" onclick="App.checkoutConfirm()">결제하기</button>'+
-      '</div>';
+    head='주문서';
+    var who=state.session.user? state.session.user.name : "이용자";
+    var why=checkoutBlocker(q);
+    body='<div class="paybox"><b style="font-size:14px">수강 강좌 '+q.items.length+'개</b>'+
+        '<div class="combo-list" style="margin-top:6px">'+q.items.map(function(x){
+          return cartRowHTML(x.c,false,'<div class="src" style="margin-top:2px">첫 수업 예정 '+esc(fmtDay(nextClassDate(x.c,new Date())))+
+            ' · 지원금 '+won(x.voucher)+(x.self?' · 본인부담 <b style="color:var(--lost)">'+won(x.self)+'</b>':'')+'</div>');
+        }).join("")+'</div></div>'+
+      '<div class="paybox"><div class="prow"><span>수강자</span><span>'+esc(who)+'</span></div>'+
+        '<div class="prow"><span>이용권 결제 카드</span><span>스포츠강좌이용권 카드(신한)</span></div></div>'+
+      (q.L!=null? priceBoxHTML(q,"결제 금액") : '<div class="paybox">'+tierPickHTML()+'</div>')+
+      payMethodHTML(q)+
+      agreeHTML()+
+      '<p class="src" style="margin-top:10px">결제취소 요청 기한: <b>'+esc(fmtDay(cancelDeadline(new Date())))+'</b>까지 · 전액 취소만 가능</p>'+
+      '<div class="paybar">'+
+        '<button type="button" class="btn btn-g btn-sm" onclick="App.cartBackToCart()">이전</button>'+
+        '<button type="button" class="btn btn-o" style="flex:1" onclick="App.checkoutConfirm()"'+(why?' aria-disabled="true"':'')+'>'+won(q.total)+' 결제하기</button>'+
+      '</div>'+
+      (why?'<p class="src" style="text-align:right;margin-top:6px;color:var(--lost)">'+esc(why)+'</p>':'');
+  } else if(step==="processing"){
+    head='결제 진행 중';
+    body='<div style="text-align:center;padding:10px 0 20px"><div class="spin" aria-hidden="true"></div>'+
+      '<b>결제를 진행하고 있어요</b><p class="note" style="margin-top:6px">잠시만 기다려 주세요. 창을 닫지 마세요.</p></div>';
   } else {
-    var r=state.checkoutReceipt;
-    var used2=sumFee(recList());
-    head='결제 완료';
-    body = !r ? '<p class="note">결제 내역이 없어요.</p>' :
-      '<div class="combo-list">'+r.items.map(function(x){
-        return '<div class="combo-item"><div><span class="nm">'+esc(x.name)+'</span>'+
-          '<div class="dt">'+esc(x.facility)+(x.fee!=null?' · '+won(x.fee):'')+'</div></div>'+
-          '<span class="chip c-ok">결제 완료</span></div>';
-      }).join("")+'</div>'+
-      '<div class="rtot" style="margin-top:10px"><span>결제 금액</span><span class="mono">'+won(r.total)+'</span></div>'+
-      (L!=null? gaugeHTML(L, used2, {label:monthLabel(state.recYM)+" 지원금"}) : "")+
-      '<div style="display:flex;gap:8px;margin-top:16px">'+
-        '<button type="button" class="btn btn-o btn-sm" onclick="App.go(\'records\');App.closeCart();">내 기록에서 자세히 보기</button>'+
-        '<button type="button" class="btn btn-g btn-sm" onclick="App.closeCart()">닫기</button>'+
+    var o=findOrder(state.checkoutReceipt);
+    head='예약 완료';
+    body = !o ? '<p class="note">결제 내역이 없어요.</p>' :
+      '<div style="text-align:center"><div class="done-ic" aria-hidden="true">✓</div>'+
+        '<h3 style="font-size:20px;font-weight:800">결제가 완료되었습니다</h3>'+
+        '<p class="note" style="margin-top:4px">예약이 접수되었어요. 가맹시설 확인 후 첫 수업부터 다니면 돼요.</p></div>'+
+      payInfoHTML(o)+
+      '<div style="margin-top:12px">'+orderItemsHTML(o)+'</div>'+
+      '<div class="paybox"><b style="font-size:14px">앞으로 이렇게 진행돼요</b>'+orderTimelineHTML(o)+'</div>'+
+      (q.L!=null? '<div class="paybox">'+gaugeHTML(q.L, paidThisMonth(), {label:monthLabel(state.recYM)+" 지원금"})+'</div>' : "")+
+      '<p class="src" style="margin-top:10px">결제취소 요청 기한: <b>'+esc(fmtDay(parseIso(o.deadline)))+'</b>까지 · 내 기록 › 예약·결제 내역에서 취소할 수 있어요.</p>'+
+      '<div class="paybar" style="flex-wrap:wrap">'+
+        '<button type="button" class="btn btn-o" style="flex:1" onclick="App.closeCart();App.go(\'records\');">예약 내역 보기</button>'+
+        '<button type="button" class="btn btn-ol btn-sm" onclick="App.addCalendar('+j(o.no)+')">캘린더에 추가</button>'+
+        '<button type="button" class="btn btn-g btn-sm" onclick="App.closeCart();App.go(\'courses\');">강좌 더 보기</button>'+
       '</div>';
   }
 
-  return '<div class="ov" onclick="App.closeCart()" role="dialog" aria-modal="true" aria-label="장바구니">'+
+  return '<div class="ov" onclick="App.closeCart()" role="dialog" aria-modal="true" aria-label="'+esc(head)+'">'+
     '<div class="mod" onclick="App.stop(event)">'+
       '<div class="mod-h"><div><span class="eyebrow">이번 달 이용권</span>'+
         '<h2 style="font-size:20px;font-weight:800;margin-top:4px">'+esc(head)+'</h2></div>'+
-        '<button type="button" class="icb" onclick="App.closeCart()" aria-label="닫기">✕</button></div>'+
+        (step==="processing"?'':'<button type="button" class="icb" onclick="App.closeCart()" aria-label="닫기">✕</button>')+'</div>'+
+      stepBarHTML(step)+
+      body+
+    '</div></div>';
+}
+
+/* ---------- 내 기록 › 예약·결제 내역 ---------- */
+function ordersHTML(){
+  if(!state.orders.length) return "";
+  var tab=state.orderTab||"all";
+  var list=state.orders.filter(function(o){
+    if(tab==="active") return o.status==="reserved";
+    if(tab==="cancel") return o.status==="cancelled";
+    return true;
+  });
+  function tb(id,label,n){ var on=tab===id;
+    return '<button type="button" class="actchip" style="'+(on?'background:var(--navy);color:#fff':'')+'" onclick="App.setOrderTab('+j(id)+')" aria-pressed="'+on+'">'+label+' '+n+'</button>'; }
+  var nA=state.orders.filter(function(o){return o.status==="reserved";}).length;
+  var nC=state.orders.length-nA;
+  return '<div class="grp-h" style="margin-top:6px"><h3>예약·결제 내역</h3></div>'+
+    '<div class="ord-tabs">'+tb("all","전체",state.orders.length)+tb("active","이용 예정·이용중",nA)+tb("cancel","취소",nC)+'</div>'+
+    (list.length? '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px">'+list.map(function(o){
+      var st=orderStatus(o);
+      return '<article class="ord">'+
+        '<div class="ord-h"><span><span class="chip '+st.k+'">'+st.t+'</span> <span class="mono src">'+esc(o.no)+'</span></span>'+
+          '<span class="src">'+esc(fmtDateTime(o.at))+'</span></div>'+
+        '<p style="margin:8px 0 2px;font-weight:700">'+esc(o.items.map(function(x){return x.name;}).join(", "))+'</p>'+
+        '<p class="src">'+esc(o.items.map(function(x){return x.facility;}).filter(function(v,i,a){return a.indexOf(v)===i;}).join(", "))+
+          ' · 총 <span class="mono">'+won(o.total)+'</span> (지원금 '+won(o.voucherTotal)+' · 본인부담 '+won(o.selfTotal)+')</p>'+
+        '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">'+
+          '<button type="button" class="btn btn-ol btn-sm" onclick="App.openOrder('+j(o.no)+')">상세 보기</button>'+
+          (canCancelOrder(o)? '<button type="button" class="btn btn-g btn-sm" onclick="App.openOrder('+j(o.no)+');App.orderCancelStart();">예약 취소</button>' : '')+
+        '</div></article>';
+    }).join("")+'</div>' : '<p class="note" style="margin-bottom:22px">해당하는 내역이 없어요.</p>');
+}
+
+function orderModalHTML(){
+  var v=state.orderView; if(!v) return "";
+  var o=findOrder(v.no); if(!o) return "";
+  var st=orderStatus(o), head, body;
+  if(v.step==="cancel"){
+    head="예약 취소";
+    body='<p class="note">'+esc(o.items.map(function(x){return x.name;}).join(", "))+' · 예약번호 <span class="mono">'+esc(o.no)+'</span></p>'+
+      '<div class="paybox"><b style="font-size:14px">취소 사유</b><div style="margin-top:6px">'+
+        CANCEL_REASONS.map(function(r){ var on=v.reason===r;
+          return '<button type="button" class="chk'+(on?' on':'')+'" onclick="App.setCancelReason('+j(r)+')" aria-pressed="'+on+'"><span class="box"></span><span>'+esc(r)+'</span></button>'; }).join("")+
+      '</div></div>'+
+      '<div class="paybox"><b style="font-size:14px">환불 예정</b>'+
+        '<div class="prow"><span>스포츠강좌이용권 지원금</span><span class="mono">'+won(o.voucherTotal)+'</span></div>'+
+        '<p class="src" style="margin:-2px 0 4px">이번 달 지원금 한도로 되돌아가요</p>'+
+        '<div class="prow"><span>본인부담금</span><span class="mono">'+won(o.selfTotal)+'</span></div>'+
+        (o.selfTotal? '<p class="src" style="margin:-2px 0 4px">'+esc(methodLabel(o.method))+'(으)로 환불 · 카드사·은행에 따라 영업일 기준 3~7일</p>':'')+
+        '<div class="prow ptot"><span>총 환불 금액</span><span class="mono">'+won(o.total)+'</span></div>'+
+      '</div>'+
+      '<p class="src" style="margin-top:10px">전액 취소만 가능해요. 취소 요청 후 가맹시설이 승인하면 환불이 진행돼요. 요청 기한: '+esc(fmtDay(parseIso(o.deadline)))+'</p>'+
+      '<div class="paybar"><button type="button" class="btn btn-g btn-sm" onclick="App.orderCancelBack()">이전</button>'+
+        '<button type="button" class="btn btn-o" style="flex:1;background:var(--lost);border-color:var(--lost)" onclick="App.orderCancelConfirm()"'+(v.reason?'':' aria-disabled="true"')+'>예약 취소하기</button></div>';
+  } else if(v.step==="cancelled"){
+    head="취소 요청 완료";
+    body='<div style="text-align:center"><div class="done-ic" style="background:var(--muted)" aria-hidden="true">✓</div>'+
+        '<h3 style="font-size:19px;font-weight:800">예약이 취소되었습니다</h3>'+
+        '<p class="note" style="margin-top:4px">가맹시설 승인 후 환불돼요. 지원금 '+won(o.voucherTotal)+'은 이번 달 한도로 돌아왔어요.</p></div>'+
+      '<div class="paybox"><div class="prow"><span>예약번호</span><span class="mono">'+esc(o.no)+'</span></div>'+
+        '<div class="prow"><span>취소 사유</span><span>'+esc(o.cancelReason||"")+'</span></div>'+
+        '<div class="prow ptot"><span>환불 예정 금액</span><span class="mono">'+won(o.total)+'</span></div></div>'+
+      '<div class="paybar"><button type="button" class="btn btn-o" style="flex:1" onclick="App.closeOrder()">확인</button>'+
+        '<button type="button" class="btn btn-ol btn-sm" onclick="App.closeOrder();App.go(\'courses\');">다른 강좌 찾기</button></div>';
+  } else {
+    head="예약 상세";
+    body='<p><span class="chip '+st.k+'">'+st.t+'</span></p>'+
+      payInfoHTML(o)+
+      '<div style="margin-top:12px">'+orderItemsHTML(o)+'</div>'+
+      (o.status==="cancelled"
+        ? '<div class="paybox"><div class="prow"><span>취소일시</span><span class="mono">'+esc(fmtDateTime(o.cancelAt))+'</span></div>'+
+            '<div class="prow"><span>취소 사유</span><span>'+esc(o.cancelReason||"")+'</span></div></div>'
+        : '<div class="paybox"><b style="font-size:14px">진행 상황</b>'+orderTimelineHTML(o)+'</div>'+
+          '<p class="src" style="margin-top:10px">'+(canCancelOrder(o)
+            ? '결제취소 요청 기한: <b>'+esc(fmtDay(parseIso(o.deadline)))+'</b>까지 · 전액 취소만 가능'
+            : '취소 요청 기한('+esc(fmtDay(parseIso(o.deadline)))+')이 지났어요. 취소가 필요하면 시설에 문의해 주세요.')+'</p>')+
+      '<div class="paybar" style="flex-wrap:wrap">'+
+        (canCancelOrder(o)? '<button type="button" class="btn btn-g btn-sm" onclick="App.orderCancelStart()">예약 취소</button>' : '')+
+        (o.status!=="cancelled"? '<button type="button" class="btn btn-ol btn-sm" onclick="App.addCalendar('+j(o.no)+')">캘린더에 추가</button>' : '')+
+        '<button type="button" class="btn btn-o" style="flex:1" onclick="App.closeOrder()">닫기</button>'+
+      '</div>';
+  }
+  return '<div class="ov" onclick="App.closeOrder()" role="dialog" aria-modal="true" aria-label="'+esc(head)+'">'+
+    '<div class="mod" onclick="App.stop(event)">'+
+      '<div class="mod-h"><div><span class="eyebrow">예약·결제 내역</span>'+
+        '<h2 style="font-size:20px;font-weight:800;margin-top:4px">'+esc(head)+'</h2></div>'+
+        '<button type="button" class="icb" onclick="App.closeOrder()" aria-label="닫기">✕</button></div>'+
       body+
     '</div></div>';
 }
@@ -4410,7 +4794,7 @@ function announce(msg){
   if(el) el.textContent=msg;
 }
 function modalOpenNow(){
-  return !!(state.auth.open || state.advModal || state.modal || state.cartOpen || (state.matchGate&&state.matchGate.open));
+  return !!(state.auth.open || state.advModal || state.modal || state.cartOpen || state.orderView || (state.matchGate&&state.matchGate.open));
 }
 function focusKeyOf(el){
   try{ return (el && el.getAttribute) ? el.getAttribute("onclick") : null; }catch(e){ return null; }
@@ -4440,7 +4824,7 @@ function renderInner(){
   }
   var html=(state.route==="admin")
     ? '<div class="gov-bar wrap" style="padding:6px 16px;font-size:12px;color:var(--muted)">국민체육진흥공단 · 스포츠강좌이용권 운영자 화면(공모전 데모)</div>'+main+authModalHTML()
-    : header()+main+footer()+modalHTML()+advanceModalHTML()+authModalHTML()+matchGateHTML()+cartModalHTML();
+    : header()+main+footer()+modalHTML()+advanceModalHTML()+authModalHTML()+matchGateHTML()+cartModalHTML()+orderModalHTML();
   if(state.toast) html+='<div class="toast" role="status">'+mascotIMG("good",20,"mascot-toast")+esc(state.toast)+'</div>';
   document.getElementById("app").innerHTML=html;
 
