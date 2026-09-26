@@ -195,9 +195,9 @@ ul{margin:0;padding-left:18px}
 .c-left{background:var(--left-soft);color:var(--left)}
 .c-gray{background:var(--bg-2);color:var(--muted)}
 .note{font-size:13px;color:var(--muted);line-height:1.6}
-.src{font-size:12px;color:var(--faint)}
-/* CHG-66(접근성): 장애유형 안내는 장애인 이용권 대상자에게 가장 중요한 줄인데도 가장 옅은
-   .src(12px, 대비 약 3.1:1 — WCAG AA 미달)로 찍히고 있었습니다. 본문 수준 대비로 올립니다. */
+/* CHG-77(가독성): .src가 12px·--faint(대비 약 3.1:1 — WCAG AA 미달)였습니다. 예약번호·요일·
+   날짜 같은 실사용 정보에 두루 쓰이는 클래스라 전체를 13px·--muted(6.3:1)로 올립니다. */
+.src{font-size:13px;color:var(--muted)}
 .dv-types{display:block;margin-top:4px;font-size:13px;color:var(--muted);line-height:1.6}
 .dv-cav{color:var(--faint);font-size:12px}
 /* 스크린리더 전용 텍스트 — 화면에는 안 보이지만 낭독은 됩니다 */
@@ -223,7 +223,10 @@ ul{margin:0;padding-left:18px}
 .seg-use{background:var(--navy)}
 .seg-add{background:var(--sky)}
 .seg-lost{background:repeating-linear-gradient(45deg,var(--lost-soft),var(--lost-soft) 6px,#FCDFD9 6px,#FCDFD9 12px);border-left:2px solid var(--lost)}
-.seg-self{background:var(--orange)}
+/* CHG-77: 이전엔 "사용"(--navy #346FB2)과 "자부담"(--orange #256EF4)이 둘 다 파란 계열이라
+   막대에서 거의 구분되지 않았습니다(색 대비 1.14:1). 자부담 칩과 같은 warn(호박색) 계열 빗금으로 바꿔
+   색이 아니라 무늬로도 구분되게 합니다. */
+.seg-self{background:repeating-linear-gradient(45deg,var(--warn),var(--warn) 6px,#B9852A 6px,#B9852A 12px);border-left:2px solid var(--warn-d,#6E4900)}
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 
@@ -2837,16 +2840,19 @@ function gaugeHTML(limit, useAmt, opts){
   var lines=[];
   if(lost>0) lines.push('<span class="chip c-lost">'+won(lost)+' 소멸 예정</span>');
   else lines.push('<span class="chip c-ok">소멸 0원</span>');
-  if(over>0) lines.push('<span class="chip c-warn">자부담 '+won(over)+'</span>');
-  else lines.push('<span class="chip c-ok">자부담 0원</span>');
+  if(over>0) lines.push('<span class="chip c-warn">본인부담금 '+won(over)+'</span>');
+  else lines.push('<span class="chip c-ok">본인부담금 0원</span>');
 
+  /* CHG-77: 예전엔 자부담(over)이 있어도 소멸(lost)만 0이면 "남김없이 사용"(초록)이 떠서,
+     바로 아래 "자부담 150,000원" 칩과 모순돼 보였습니다. 세 가지 결과를 분명히 나눕니다. */
+  var valTxt = lost>0? won(lost)+" 소멸" : over>0? "지원금 다 쓰고 본인부담 "+won(over) : "남김없이 사용";
+  var valColor = lost>0? "var(--lost)" : over>0? "var(--warn)" : "var(--ok)";
   return '<div class="gauge">'+
     '<div class="gauge-top">'+
       '<span class="gauge-lbl">'+esc(opts.label||"이번 달 지원금")+' <b class="mono">'+won(limit)+'</b></span>'+
-      '<span class="gauge-val mono" style="color:'+(lost>0?"var(--lost)":"var(--ok)")+'">'+
-        (lost>0? won(lost)+" 소멸" : "남김없이 사용")+'</span>'+
+      '<span class="gauge-val mono" style="color:'+valColor+'">'+esc(valTxt)+'</span>'+
     '</div>'+
-    '<div class="bar" role="img" aria-label="지원금 '+won(limit)+' 중 '+won(used)+' 사용, '+won(lost)+' 소멸 예정">'+
+    '<div class="bar" role="img" aria-label="지원금 '+won(limit)+' 중 '+won(used)+' 사용, '+won(lost)+' 소멸 예정'+(over>0?', 본인부담 '+won(over):'')+'">'+
       '<span class="seg-use" style="width:'+pUsed+'%"></span>'+
       (lost>0?'<span class="seg-lost" style="width:'+pLost+'%"></span>':'')+
       (over>0?'<span class="seg-self" style="width:'+pOver+'%"></span>':'')+
@@ -2854,7 +2860,7 @@ function gaugeHTML(limit, useAmt, opts){
     '<div class="legend">'+lines.join("")+
       '<span><i style="background:var(--navy)"></i>사용</span>'+
       '<span><i style="background:#FCDFD9;border:1px solid var(--lost)"></i>소멸</span>'+
-      (over>0?'<span><i style="background:var(--orange)"></i>자부담</span>':'')+
+      (over>0?'<span><i style="background:repeating-linear-gradient(45deg,var(--warn),var(--warn) 3px,#B9852A 3px,#B9852A 6px)"></i>본인부담금</span>':'')+
     '</div>'+
     (lost>0? '<p class="note">이 상태가 이어지면 <b class="mono" style="color:var(--lost)">'+won(lost*12)+'</b>이 1년 동안 사라져요. 지원금은 다음 달로 이월되지 않아요.</p>':'')+
   '</div>';
@@ -3659,14 +3665,25 @@ function ymParts(ym){ var p=ym.split("-"); return { y:Number(p[0]), m:Number(p[1
 function daysIn(ym){ var q=ymParts(ym); return new Date(q.y,q.m,0).getDate(); }
 function dowOf(ym,d){ var q=ymParts(ym); return new Date(q.y,q.m-1,d).getDay(); }
 function dayCut(ym){ var diff=ymDiff(ym,ymNow()); return diff<0? 31 : diff>0? 0 : new Date().getDate(); }
-function planDates(snap, ym){
+function planDates(snap, ym, startDay){
   if(!snap || snap.flexible || !snap.days || !snap.days.length || snap.days.length===7) return null;
-  var out=[], n=daysIn(ym);
-  for(var d=1; d<=n; d++) if(snap.days.indexOf(WDS[dowOf(ym,d)])>=0) out.push(d);
+  var out=[], n=daysIn(ym), from=startDay||1;
+  for(var d=from; d<=n; d++) if(snap.days.indexOf(WDS[dowOf(ym,d)])>=0) out.push(d);
   return out;
 }
-function attStats(snap, attDays, ym){
-  var plan=planDates(snap, ym), cut=dayCut(ym), att=(attDays||[]).length;
+/* CHG-77: 결제 시점이 늦어 첫 수업이 이번 달 중순 이후인 강좌는, 그 전 운영일까지
+   "지난 운영일 N일 중 0회 출석"에 잡혀서 마치 수업을 빠진 것처럼 보였습니다.
+   실제 예약의 첫 수업일을 알면(startDay) 그 이전 날짜는 운영일 집계에서 뺍니다. */
+function courseStartDay(id, ym){
+  var ord=activeOrderFor(id);
+  if(ord){
+    var oit=ord.items.filter(function(x){ return x.id===id; })[0];
+    if(oit && oit.first && oit.first.slice(0,7)===ym) return Number(oit.first.slice(8,10));
+  }
+  return 1;
+}
+function attStats(snap, attDays, ym, startDay){
+  var plan=planDates(snap, ym, startDay), cut=dayCut(ym), att=(attDays||[]).length;
   var planned = plan? plan.filter(function(d){ return d<=cut; }).length : null;
   return { planned:planned, attended:att, rate:(planned? att/planned : null) };
 }
@@ -3679,7 +3696,7 @@ function attLabel(st){
 function missedWeekdays(){
   var cnt={}, cut=dayCut(state.recYM);
   Object.keys(state.rec).forEach(function(id){
-    var s=recCourse(id), r=state.rec[id], plan=planDates(s,state.recYM); if(!plan) return;
+    var s=recCourse(id), r=state.rec[id], plan=planDates(s,state.recYM,courseStartDay(id,state.recYM)); if(!plan) return;
     plan.forEach(function(d){ if(d>cut) return; var w=WDS[dowOf(state.recYM,d)];
       cnt[w]=cnt[w]||{p:0,a:0}; cnt[w].p++; if((r.attDays||[]).indexOf(d)>=0) cnt[w].a++; });
   });
@@ -3692,7 +3709,7 @@ function calendarHTML(){
   if(!state.calSel || !state.rec[state.calSel]) state.calSel=ids[0];
   var sel=state.calSel, selIdx=ids.indexOf(sel);
   var cut=dayCut(ym), n=daysIn(ym), first=dowOf(ym,1), today=(ymDiff(ym,ymNow())===0? new Date().getDate() : 0);
-  var plans=snaps.map(function(s){ return planDates(s,ym); });
+  var plans=snaps.map(function(s,i){ return planDates(s,ym,courseStartDay(ids[i],ym)); });
   var dls={}; DEADLINES.forEach(function(x){ if(x.d.slice(0,7)===ym) dls[Number(x.d.slice(8,10))]=x; });
 
   var pick=ids.map(function(id,i){
@@ -3722,7 +3739,7 @@ function calendarHTML(){
   var upcoming=DEADLINES.filter(function(x){ return x.d>=new Date().toISOString().slice(0,10); }).slice(0,3).map(function(x){
     return '<span class="cal-up"><i style="background:'+x.c+'"></i><b class="mono">'+Number(x.d.slice(5,7))+'/'+Number(x.d.slice(8,10))+'</b> '+esc(x.t)+'</span>';
   }).join("");
-  return '<section class="card cal">'+
+  return '<section class="card cal" id="cal-card">'+
     '<div class="cal-h"><h3>'+monthLabel(ym)+' 출석 달력</h3><div class="cal-picks">'+pick+'</div></div>'+
     '<div class="cal-g">'+WDS.map(function(w,i){ return '<span class="cal-w'+(i===0?' sun':'')+'">'+w+'</span>'; }).join("")+cells+'</div>'+
     note+(upcoming?'<div class="cal-ups">'+upcoming+'</div>':'')+
@@ -3906,26 +3923,70 @@ function tierPickHTML(){
     '</select></div>';
 }
 
+/* CHG-77: 전문가 패널(디자인·접근성·정보구조·사용자) 공통 1순위 제안 —
+   "얼마 남았나"가 페이지 맨 위에 없다는 점. 큰 숫자 하나 + 다음 수업 + 할 일 칩을
+   내역·게이지보다 먼저 보여준다. */
+function summaryCardHTML(ids, limit, used){
+  if(!ids.length) return "";
+  var todayIso=isoDate(new Date()), next=null;
+  ids.forEach(function(id){
+    var ord=activeOrderFor(id); if(!ord) return;
+    var oit=ord.items.filter(function(x){ return x.id===id; })[0]; if(!oit || !oit.first) return;
+    if(oit.first>=todayIso && (!next || oit.first<next.first)) next={ first:oit.first, name:oit.name };
+  });
+  var stat = limit==null ? "" : (function(){
+    var remain=Math.max(0,limit-used), over=Math.max(0,used-limit);
+    var big='<div style="font-size:28px;font-weight:800;letter-spacing:-.02em;color:'+(remain>0?'var(--navy)':'var(--muted)')+'">'+won(remain)+
+      ' <span style="font-size:15px;font-weight:600;color:var(--muted)">남음</span></div>';
+    var row='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px">'+
+      '<div><p class="note" style="margin:0">쓴 지원금</p><p class="mono" style="font-weight:700;font-size:15px">'+won(Math.min(used,limit))+'</p></div>'+
+      '<div><p class="note" style="margin:0">내가 낸 돈</p><p class="mono" style="font-weight:700;font-size:15px;color:'+(over>0?'var(--warn)':'var(--ink-2)')+'">'+won(over)+'</p></div>'+
+      '<div><p class="note" style="margin:0">한 달 지원금</p><p class="mono" style="font-weight:700;font-size:15px">'+won(limit)+'</p></div>'+
+    '</div>';
+    var warn = remain>0 ? '<p class="note" style="margin-top:10px;color:var(--lost);font-weight:600">'+monthLabel(state.recYM)+' '+daysIn(state.recYM)+'일이 지나면 '+won(remain)+'이 사라져요.</p>' : "";
+    return big+row+warn;
+  })();
+  var nextBlock = next ? '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)"><p class="note" style="margin:0">다음 수업</p>'+
+    '<p style="font-weight:700;margin-top:2px">'+esc(next.name)+' · '+esc(fmtDay(parseIso(next.first)))+' <span class="chip c-navy">'+esc(dDay(next.first))+'</span></p></div>' : "";
+  var chips=[];
+  chips.push('<button type="button" class="actchip" onclick="var e=document.getElementById(\'cal-card\'); if(e) e.scrollIntoView({behavior:\'smooth\'})">'+icon("calendar",14)+' 출석 체크하기</button>');
+  if(limit!=null && Math.max(0,limit-used)>0) chips.push('<button type="button" class="actchip" onclick="App.go(\'courses\')">'+icon("won",14)+' 마감 전에 쓰기</button>');
+  if(!state.carry) chips.push('<button type="button" class="actchip" onclick="App.planNext()">'+icon("calendar",14)+' '+esc(monthLabel(ymAdd(state.recYM,1)))+' 담기</button>');
+  return '<div class="card" style="padding:20px 22px;margin-bottom:14px">'+
+    '<h2 style="font-size:15px;font-weight:700;color:var(--muted)">'+esc(monthLabel(state.recYM))+' 이용 현황</h2>'+
+    stat+nextBlock+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">'+chips.join("")+'</div>'+
+  '</div>';
+}
+
 function recordsHTML(){
   var ids=Object.keys(state.rec), list=recList();
   var limit=monthlyLimit(state.answers), used=sumFee(list);
   var cards=ids.map(function(id){
     var c=recCourse(id); if(!c) return "";
     var r=state.rec[id];
-    /* CHG-73: 주문서로 결제한 강좌는 «결제 확인» 수동 토글 대신 예약 상태를 보여주고, ✕ 대신 예약 상세(취소)로 연결 */
+    /* CHG-73: 주문서로 결제한 강좌는 «결제 확인» 수동 토글 대신 예약 상태를 보여주고, ✕ 대신 예약 상세(취소)로 연결.
+       CHG-77: rec-st가 이용중/예약완료/취소완료를 전부 같은 초록색으로 보여줘서 취소된 강좌도
+       "잘 되고 있다"처럼 보였습니다. 상태별 색을 나눕니다. */
     var ord=activeOrderFor(id), oit=ord? ord.items.filter(function(x){ return x.id===id; })[0] : null;
+    var ordSt=ord? orderStatus(ord) : null;
+    var RECST_C={ "c-ok":{bg:"var(--ok-soft)",bd:"#BFDDCC",fg:"var(--ok)"},
+      "c-navy":{bg:"var(--navy-soft)",bd:"#C7D9EC",fg:"var(--navy)"},
+      "c-gray":{bg:"var(--bg-2)",bd:"var(--line)",fg:"var(--muted)"} };
     return '<article class="rec">'+
       '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">'+
         '<div><h3 style="font-size:17px;font-weight:800">'+esc(c.name)+'</h3>'+
         '<p class="note">'+esc(c.facility+" · "+c.sport)+(c.fee!=null?" · "+won(c.fee):"")+'</p>'+
         '<p class="src">'+esc(schedLabel(c))+(oit?' · 첫 수업 '+esc(fmtDay(parseIso(oit.first))):'')+'</p></div>'+
-        (ord? '<button type="button" class="btn btn-g btn-sm" onclick="App.openOrder('+j(ord.no)+')">예약 상세</button>'
+        (ord? '<button type="button" class="btn btn-g btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="App.openOrder('+j(ord.no)+')">예약 상세</button>'
              : '<button type="button" class="icb" onclick="App.removeRec('+j(id)+')" aria-label="삭제">✕</button>')+
       '</div>'+
-      (ord? '<div class="rec-st"><span>'+esc(orderStatus(ord).t)+'</span><span class="mono" style="font-size:12px">'+esc(ord.no)+'</span></div>'
+      (ord? (function(){ var sc=RECST_C[ordSt.k]||RECST_C["c-gray"];
+          return '<div class="rec-st" style="background:'+sc.bg+';border-color:'+sc.bd+';color:'+sc.fg+'"><span>'+esc(ordSt.t)+'</span>'+
+            '<span class="mono" style="font-size:13px;font-weight:600;color:var(--muted)">'+esc(ord.no)+'</span></div>'; })()
         : '<button type="button" class="tgl'+(r.pay?' on':'')+'" onclick="App.toggleRec('+j(id)+',\'pay\')" aria-pressed="'+r.pay+'">'+
           '<span>결제 확인</span><span>'+(r.pay?'확인함':'미확인')+'</span></button>')+
-      (function(){ var st=attStats(c, r.attDays, state.recYM), pct=st.rate!=null? Math.min(100,Math.round(st.rate*100)) : null;
+      (function(){ var st=attStats(c, r.attDays, state.recYM, courseStartDay(id, state.recYM)), pct=st.rate!=null? Math.min(100,Math.round(st.rate*100)) : null;
         return '<div class="att-sum"><span>'+esc(attLabel(st))+'</span>'+
           (pct!=null? '<span class="att-bar"><i style="width:'+pct+'%"></i></span>' : '')+'</div>'; })()+
     '</article>';
@@ -3990,6 +4051,7 @@ function recordsHTML(){
     '<section>'+
       '<h1 class="sec-t">'+(state.session.user? esc(state.session.user.name)+'님의 기록' : '내 기록')+
         ' <span class="chip c-navy" style="vertical-align:6px">'+ymLabel(state.recYM)+'</span></h1>'+
+      summaryCardHTML(ids, limit, used)+
       ordersHTML()+
       carryHTML()+
       gauge+
