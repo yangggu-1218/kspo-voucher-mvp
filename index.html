@@ -4826,7 +4826,14 @@ function renderInner(){
     ? '<div class="gov-bar wrap" style="padding:6px 16px;font-size:12px;color:var(--muted)">국민체육진흥공단 · 스포츠강좌이용권 운영자 화면(공모전 데모)</div>'+main+authModalHTML()
     : header()+main+footer()+modalHTML()+advanceModalHTML()+authModalHTML()+matchGateHTML()+cartModalHTML()+orderModalHTML();
   if(state.toast) html+='<div class="toast" role="status">'+mascotIMG("good",20,"mascot-toast")+esc(state.toast)+'</div>';
+  /* CHG-73: 주문서처럼 긴 모달 안에서 결제수단·동의를 누를 때마다 맨 위로 튀지 않도록,
+     같은 창(aria-label)이 다시 그려지면 모달 안 스크롤 위치를 되살린다 */
+  var modScroll=null;
+  try{ var om=document.querySelector(".ov .mod"), ov=document.querySelector(".ov");
+    if(om && ov) modScroll={ key:ov.getAttribute("aria-label"), top:om.scrollTop }; }catch(e){}
   document.getElementById("app").innerHTML=html;
+  try{ if(modScroll){ var nm=document.querySelector(".ov .mod"), nov=document.querySelector(".ov");
+    if(nm && nov && nov.getAttribute("aria-label")===modScroll.key) nm.scrollTop=modScroll.top; } }catch(e){}
 
   if(fk){
     var next=document.querySelector('[data-fk="'+fk+'"]');
