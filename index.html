@@ -1690,6 +1690,30 @@ function regionOptions(selected, allLabel){
   return out;
 }
 
+/* CHG-69: 종목 찾기 지역 확인 창이 233개 시군구를 한 번에 늘어놓아 원하는 곳을
+   찾기 어렵다는 지적을 받아, «시/도를 먼저 크게 고르고 → 그 안의 시군구를 고르는»
+   2단계로 나눕니다. 아래 두 헬퍼가 그 목록을 만듭니다. */
+function sidoOrder(){
+  var order=[], seen={};
+  for(var i=0;i<REGIONS.length;i++){
+    var sd=REGIONS[i].sido;
+    if(!seen[sd]){ seen[sd]=1; order.push(sd); }
+  }
+  return order;
+}
+function regionsInSido(sido){
+  return REGIONS.filter(function(r){ return r.sido===sido; });
+}
+function sidoOptionsHTML(selected){
+  return sidoOrder().map(function(sd){
+    return '<option value="'+esc(sd)+'"'+(selected===sd?' selected':'')+'>'+esc(sd)+'</option>';
+  }).join("");
+}
+function sggOptionsHTML(sido, selected){
+  return regionsInSido(sido).map(function(r){
+    return '<option value="'+r.code+'"'+(selected===r.code?' selected':'')+'>'+esc(r.sigungu)+'</option>';
+  }).join("");
+}
 function regionOf(code){
   var key=regionKey(code);
   for(var i=0;i<REGIONS.length;i++) if(REGIONS[i].code===key) return REGIONS[i];
@@ -1863,7 +1887,7 @@ var state={
      App.loadNation() 과는 별개로, 진단·강좌 화면 진입 없이도 홈에서만 가볍게 불러오는 용도. */
   homeStats:{ courseCount:null, facilCount:null, loading:false, tried:false },
   /* CHG-55: 종목 찾기 진입 전 지역 확인 창. code는 선택 중인 값(확정 전), open=true면 창이 떠 있음 */
-  matchGate:{ open:false, code:"" },
+  matchGate:{ open:false, code:"", sido:"" },
   session:{ user:null, admin:false },
   auth:{ open:false, tab:"user", err:"" },
   /* CHG-65: 장애인스포츠강좌이용권 등록강좌·시설 조인 데이터 (data/dvoucher.json) 로딩 상태 */
@@ -2296,9 +2320,24 @@ var App={
      강좌 화면 필터(state.f.code)를 조용히 이어받아 사용자가 무슨 지역 기준인지 모르고 볼 수 있었다.
      다른 화면에서 막 들어올 때만(=match가 아니었다가 match로 갈 때만) 지역 확인 창을 띄운다. */
   go:function(r){
-    if(r==="match" && state.route!=="match"){ state.matchGate={ open:true, code:state.f.code }; }
+    if(r==="match" && state.route!=="match"){
+      /* CHG-69: 지금 잡혀 있는 지역(code)이 있으면 그 시/도로 시작하고, 없으면 목록의
+         첫 시/도로 시작한다 — 둘 다 아니어도 "지역 전체"만 아니면 안전. */
+      var cur=regionOf(state.f.code);
+      var sido = cur ? cur.sido : sidoOrder()[0];
+      var firstInSido = regionsInSido(sido)[0];
+      state.matchGate={ open:true, sido:sido, code: cur ? state.f.code : (firstInSido?firstInSido.code:"") };
+    }
     if(r==="courses" && state.answers.disability==="있음") App.ensureDvoucher();   /* CHG-65 */
     state.route=r; state.modal=null; state.filtersOpen=false; render(); window.scrollTo(0,0);
+  },
+  /* CHG-69: 시/도를 바꾸면 시군구 선택은 그 시/도의 첫 시군구로 다시 맞춘다 —
+     이전 시/도의 시군구 코드가 그대로 남아 있으면 «다른 시/도인데 선택된 시군구»처럼 보인다. */
+  setMatchGateSido:function(sido){
+    var first=regionsInSido(sido)[0];
+    state.matchGate.sido=sido;
+    state.matchGate.code=first?first.code:"";
+    render();
   },
   setMatchGateCode:function(code){ state.matchGate.code=code; render(); },
   confirmMatchGate:function(){
@@ -4098,17 +4137,27 @@ function authModalHTML(){
 }
 
 /* ---------- CHG-55: 종목 찾기 지역 확인 창 ---------- */
+/* CHG-69: 233개 시군구를 한 목록에 늘어놓으면 원하는 곳을 찾기 어렵다는 지적을 받아,
+   시/도를 먼저 큰 단위로 고르고 그 안에서 시군구를 고르는 2단계로 나눴습니다. */
 function matchGateHTML(){
   if(state.route!=="match" || !state.matchGate.open) return "";
+  var sido=state.matchGate.sido||sidoOrder()[0];
   var code=state.matchGate.code||state.f.code;
   return '<div class="ov" role="dialog" aria-modal="true" aria-label="지역 선택">'+
     '<div class="mod" style="max-width:420px" onclick="App.stop(event)">'+
       '<span class="eyebrow">종목 찾기</span>'+
       '<h2 style="font-size:20px;font-weight:800;margin:6px 0 4px">먼저 지역을 확인해주세요</h2>'+
       '<p class="note">선택한 지역에 있는 강좌만 «우리 동네에 있어요»로 표시돼요.</p>'+
-      '<select class="sel-f" style="margin-top:16px" onchange="App.setMatchGateCode(this.value)" aria-label="지역">'+
-        regionOptions(code, null)+
-      '</select>'+
+      '<div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">'+
+        '<div><label for="mgSido" style="display:block;font-size:13px;font-weight:700;color:var(--ink-2);margin-bottom:6px">시/도</label>'+
+          '<select class="sel-f" id="mgSido" onchange="App.setMatchGateSido(this.value)" aria-label="시/도">'+
+            sidoOptionsHTML(sido)+
+          '</select></div>'+
+        '<div><label for="mgSgg" style="display:block;font-size:13px;font-weight:700;color:var(--ink-2);margin-bottom:6px">시/군/구</label>'+
+          '<select class="sel-f" id="mgSgg" onchange="App.setMatchGateCode(this.value)" aria-label="시/군/구">'+
+            sggOptionsHTML(sido, code)+
+          '</select></div>'+
+      '</div>'+
       '<button type="button" class="btn btn-o btn-blk" style="margin-top:16px" onclick="App.confirmMatchGate()">이 지역으로 종목 찾기</button>'+
       '<button type="button" class="btn btn-g btn-sm btn-blk" style="margin-top:8px" onclick="App.go(\'home\')">처음 화면으로</button>'+
     '</div></div>';
