@@ -605,6 +605,10 @@ table.adm-t th{background:var(--bg-2);color:var(--ink-2);font-size:12px;font-wei
 table.adm-t td.n,table.adm-t th.n{text-align:right}
 table.adm-t tbody tr{cursor:pointer}
 table.adm-t tbody tr:hover{background:var(--navy-soft)}
+.adm-sortable{cursor:pointer;user-select:none}
+.adm-sortable:hover{color:var(--navy)}
+.adm-notes{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.adm-notes li{padding:8px 10px;background:var(--bg-2);border-radius:8px;font-size:13px}
 .adm-scroll{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:12px}
 .adm-w{align-items:center;background:var(--navy-soft);border-radius:12px;display:flex;flex-wrap:wrap;
   gap:14px;padding:12px 16px}
@@ -4384,6 +4388,7 @@ var ADMIN_TABS = [
   ["overview",  "전국 현황"],
   ["blindspot", "사각지대 분석"],
   ["region",    "지역 상세"],
+  ["facility",  "가맹시설 관리"],
   ["demand",    "수요 신호"],
   ["data",      "데이터"],
   ["sources",   "데이터 출처"]
@@ -4635,7 +4640,8 @@ var REGION_STATS = [
 var STATS_META = { origin:"partial", fileName:"KS_SPORTS_VOUCH_FCLTY_INFO_202607.csv",
   loadedAt:"2026-09-15 (가맹시설수만 실측 반영)", rows:REGION_STATS.length, calcAt:null };
 
-state.admin = { auth:false, tab:"overview", sgg:null, w:0.6, sort:"idx", q:"", sido:"" };
+state.admin = { auth:false, tab:"overview", sgg:null, w:0.6, sort:"idx", sortDir:"desc", q:"", sido:"",
+  facQ:"", facSort:"course_desc", telMask:true };
 try{ if(sessionStorage.getItem("voucher.adm")==="1"){ state.admin.auth=true; state.session.admin=true; } }catch(e){}
 
 /* ---------- 계산 ---------- */
@@ -4759,11 +4765,60 @@ function toNum(v){
   return isNaN(n)?0:n;
 }
 
+/* CHG-68: 문화빅데이터플랫폼이 실제로 배포하는 "지역별스포츠강좌이용권활용정보" 원본 CSV는
+   컬럼명이 한글이 아니라 영문 코드(SIGNGU_NM, SIGNGU_ACCTO_POPLTN_CO 등)이고, 시군구 하나당
+   수급구분(RECIPT_FLAG_CD: N=차상위계층 및 한부모가정, S=기초수급생활대상자) 별로 행이 2개씩
+   나뉘어 있다(대상인원·수급인원을 두 구분 합계로 더해야 시군구 전체 값이 됨). 기존 파서는
+   한글 헤더(시군구명·대상인원수 등) 한 줄=한 시군구를 가정하고 있어 이 실파일을 못 읽었다.
+   그래서 영문 코드 헤더를 먼저 찾아보고, 있으면 시군구코드로 묶어 합산한다. 못 찾으면
+   예전처럼 한글 헤더(수동 정리한 파일)를 그대로 읽는다 — 둘 다 지원. */
+function csvSafe(v){
+  /* 보안: 값이 =+−@ 로 시작하면 스프레드시트가 수식으로 해석해 실행할 수 있다(CSV 인젝션).
+     내려받기/재노출 전에 항상 이걸 거쳐 앞에 문자 하나를 붙여 무력화한다. */
+  var s=String(v==null?"":v);
+  return /^[=+\-@]/.test(s) ? "'"+s : s;
+}
 function parseRegionCSV(text){
   var lines=text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n")
     .filter(function(l){return l.trim()!=="";});
   if(lines.length<2) return { error:"데이터 행이 없습니다." };
-  var head=splitCsvLine(lines[0]);
+  var head=splitCsvLine(lines[0]).map(function(h){ return String(h||"").replace(/^﻿/,"").trim(); });
+
+  /* 1) 실제 배포 CSV(영문 코드 헤더) 먼저 시도 */
+  var cCd  = head.indexOf("SIGNGU_CD");
+  var cNm  = head.indexOf("SIGNGU_NM");
+  if(cCd>=0 && cNm>=0){
+    var cSidoNm=head.indexOf("CTPRVN_NM");
+    var cPopE=head.indexOf("SIGNGU_ACCTO_POPLTN_CO");
+    var cFacE=head.indexOf("SIGNGU_ACCTO_FCLTY_CO");
+    var cTgtE=head.indexOf("CRRSPND_FLAG_TRGET_NMPR_CO");
+    var cBenE=head.indexOf("CRRSPND_FLAG_RECIPT_NMPR_CO");
+    if(cTgtE<0 || cBenE<0) return { error:"영문 헤더는 인식했지만 대상·수급 인원 컬럼(CRRSPND_FLAG_…)을 찾지 못했습니다 — 인식된 헤더: "+head.slice(0,12).join(" | ") };
+    var byCode={};
+    for(var i=1;i<lines.length;i++){
+      var c=splitCsvLine(lines[i]).map(function(v){ return String(v||"").replace(/^"|"$/g,"").trim(); });
+      var code=String(c[cCd]||"").trim();
+      var name=String(c[cNm]||"").trim();
+      if(!code || !name) continue;
+      var row=byCode[code];
+      if(!row){
+        row=byCode[code]={
+          sido: cSidoNm>=0 ? String(c[cSidoNm]||"").trim() : "미상",
+          sgg:  name, code: code,
+          pop:  cPopE>=0 ? toNum(c[cPopE]) : 0,
+          fac:  cFacE>=0 ? toNum(c[cFacE]) : 0,
+          target:0, benefit:0
+        };
+      }
+      row.target  += toNum(c[cTgtE]);
+      row.benefit += toNum(c[cBenE]);
+    }
+    var rowsE=Object.keys(byCode).map(function(k){ return byCode[k]; });
+    if(!rowsE.length) return { error:"행을 하나도 읽지 못했습니다." };
+    return { rows:rowsE, schema:"official" };
+  }
+
+  /* 2) 예전 방식: 한글 헤더, 시군구 1줄=1행, 대상·수급이 이미 합계인 파일 */
   var cSgg=findCol(head,["시군구"],["인구","시설","인원","코드"]);
   var cSido=findCol(head,["시도"],["코드"]);
   var cPop=findCol(head,["인구"]);
@@ -4778,21 +4833,21 @@ function parseRegionCSV(text){
     " · 인식된 헤더: "+head.slice(0,10).join(" | ") };
 
   var rows=[];
-  for(var i=1;i<lines.length;i++){
-    var c=splitCsvLine(lines[i]);
-    var name=String(c[cSgg]||"").trim();
-    if(!name) continue;
+  for(var j=1;j<lines.length;j++){
+    var c2=splitCsvLine(lines[j]);
+    var name2=String(c2[cSgg]||"").trim();
+    if(!name2) continue;
     rows.push({
-      sido: cSido>=0 ? String(c[cSido]||"").trim() : "미상",
-      sgg:  name,
-      pop:  cPop>=0 ? toNum(c[cPop]) : 0,
-      fac:  cFac>=0 ? toNum(c[cFac]) : 0,
-      target:  toNum(c[cTgt]),
-      benefit: toNum(c[cBen])
+      sido: cSido>=0 ? String(c2[cSido]||"").trim() : "미상",
+      sgg:  name2,
+      pop:  cPop>=0 ? toNum(c2[cPop]) : 0,
+      fac:  cFac>=0 ? toNum(c2[cFac]) : 0,
+      target:  toNum(c2[cTgt]),
+      benefit: toNum(c2[cBen])
     });
   }
   if(!rows.length) return { error:"행을 하나도 읽지 못했습니다." };
-  return { rows:rows };
+  return { rows:rows, schema:"legacy" };
 }
 
 /* ---------- 차트 ---------- */
@@ -4931,11 +4986,39 @@ function admOverviewHTML(rows, sum){
     '</div>';
 }
 
+/* CHG-68: 정책분석가 요구 — 여러 지표를 한 번에 비교하려면 표를 여러 기준으로
+   다시 정렬할 수 있어야 한다. 헤더를 눌러 기준을 바꾸고, 같은 헤더를 다시 누르면
+   오름/내림을 뒤집는다. */
+var ADM_SORTERS={
+  idx:     function(r){ return r.idx; },
+  rate:    function(r){ return r.rate; },
+  density: function(r){ return r.density; },
+  target:  function(r){ return r.target; },
+  pop:     function(r){ return r.pop; },
+  need:    function(r){ return r.need; }
+};
+function sortAdmRows(list, field, dir){
+  var f=ADM_SORTERS[field]||ADM_SORTERS.idx;
+  var s=list.slice().sort(function(a,b){
+    var av=f(a), bv=f(b);
+    if(av==null && bv==null) return 0;
+    if(av==null) return 1;
+    if(bv==null) return -1;
+    return dir==="asc" ? av-bv : bv-av;
+  });
+  return s;
+}
 function admBlindspotHTML(rows, sum){
   var w=state.admin.w;
-  var list=rows.filter(function(r){return r.idx!=null;}).slice().sort(function(a,b){return b.idx-a.idx;});
+  var sortField=state.admin.sort||"idx", sortDir=state.admin.sortDir||"desc";
+  var list=sortAdmRows(rows.filter(function(r){return r.idx!=null;}), sortField, sortDir);
   var q=state.admin.q.trim();
   if(q) list=list.filter(function(r){ return (r.sido+r.sgg).indexOf(q)>=0; });
+  function th(field, label){
+    var on=sortField===field;
+    return '<th class="n adm-sortable" onclick="App.admSort('+j(field)+')">'+
+      esc(label)+(on?(sortDir==="asc"?" ▲":" ▼"):"")+'</th>';
+  }
 
   return '<div class="adm-card">'+
       '<h3>사각지대 지수</h3>'+
@@ -4965,9 +5048,10 @@ function admBlindspotHTML(rows, sum){
         '<button type="button" class="btn btn-g btn-sm" onclick="App.admExport()">CSV 내려받기</button>'+
         '<button type="button" class="btn btn-g btn-sm" onclick="window.print()">인쇄 · PDF 저장</button>'+
       '</div>'+
+      '<p class="src" style="margin:0 0 8px">표 머리글을 누르면 그 기준으로 다시 정렬됩니다.</p>'+
       (list.length ? '<div class="adm-scroll"><table class="adm-t"><thead><tr>'+
-        '<th class="n">순위</th><th>시도</th><th>시군구</th><th class="n">지수</th>'+
-        '<th class="n">수혜율</th><th class="n">공급밀도</th><th class="n">대상인원</th><th class="n">부족 추정</th>'+
+        '<th class="n">순위</th><th>시도</th><th>시군구</th>'+th("idx","지수")+
+        th("rate","수혜율")+th("density","공급밀도")+th("pop","인구")+th("target","대상인원")+th("need","부족 추정")+
         '</tr></thead><tbody>'+
         list.map(function(r,i){
           return '<tr onclick="App.admRegion('+j(r.sgg)+')">'+
@@ -4975,6 +5059,7 @@ function admBlindspotHTML(rows, sum){
             '<td class="n mono"><b>'+r.idx.toFixed(3)+'</b></td>'+
             '<td class="n mono"'+(r.rate<sum.rate?' style="color:var(--lost)"':'')+'>'+pct(r.rate)+'</td>'+
             '<td class="n mono">'+r.density.toFixed(2)+'</td>'+
+            '<td class="n mono">'+(r.pop!=null?anum(r.pop):"—")+'</td>'+
             '<td class="n mono">'+anum(r.target)+'</td>'+
             '<td class="n mono">'+(r.need>0?'+'+anum(r.need)+'개소':'—')+'</td></tr>';
         }).join("")+'</tbody></table></div>'
@@ -5040,7 +5125,37 @@ function admRegionHTML(rows, sum){
         cmp("가맹시설", r.fac, null, null, function(v){return v==null?"—":anum(v);})+
       '</tbody></table>'+
     '</div>'+
-    courseBlock;
+    courseBlock+
+    admNotesHTML(r.sgg);
+}
+
+/* CHG-68: 지역 상세 담당자 메모 — 정책분석가 요구 "개선 계획을 기록해 다음에 다시 확인"을
+   반영. 서버가 없는 정적 사이트라 이 브라우저에만 남는 개인용 메모라는 점을 항상 밝힙니다
+   (다른 담당자와 공유되지 않음 — 보안 검토에서 나온 지적). */
+function admNotesGet(sgg){
+  try{ var raw=localStorage.getItem("adm.notes."+sgg); var v=raw?JSON.parse(raw):[]; return Array.isArray(v)?v:[]; }
+  catch(e){ return []; }
+}
+function admNotesSet(sgg, list){ try{ localStorage.setItem("adm.notes."+sgg, JSON.stringify(list)); }catch(e){} }
+function admNotesHTML(sgg){
+  var notes=admNotesGet(sgg);
+  return '<div class="adm-card">'+
+    '<h3>담당자 메모</h3>'+
+    '<p class="adm-cd">"가맹시설 확대 협의 중"처럼 조치 이력을 남겨두는 개인용 메모입니다. '+
+      '<b>이 브라우저에만 저장되고 다른 담당자와 공유되지 않습니다</b> — 여러 담당자가 함께 보려면 저장소가 있는 백엔드가 필요합니다.</p>'+
+    '<div class="adm-rowbtns">'+
+      '<input class="tin" id="admNoteText" placeholder="메모 입력 후 추가" style="flex:1;min-width:200px" '+
+        'onkeydown="if(event.key===\'Enter\')App.admNoteAdd('+j(sgg)+')">'+
+      '<button type="button" class="btn btn-g btn-sm" onclick="App.admNoteAdd('+j(sgg)+')">추가</button>'+
+    '</div>'+
+    (notes.length ? '<ul class="adm-notes" style="margin-top:10px">'+
+      notes.slice().reverse().map(function(n,i){
+        var realIdx=notes.length-1-i;
+        return '<li><span class="src">'+esc(n.at)+'</span> '+esc(n.text)+
+          ' <button type="button" class="lnk" onclick="App.admNoteDel('+j(sgg)+','+realIdx+')">삭제</button></li>';
+      }).join("")+'</ul>'
+    : '<p class="adm-empty" style="margin-top:10px">아직 메모가 없습니다.</p>')+
+  '</div>';
 }
 
 function admDemandHTML(){
@@ -5104,14 +5219,20 @@ function admDataHTML(){
     '</div>'+
     '<div class="adm-card">'+
       '<h3>실제 데이터 올리기</h3>'+
-      '<p class="adm-cd">문화빅데이터플랫폼의 <b>지역별 스포츠강좌이용권 활용정보</b> CSV를 그대로 올리면 화면 전체가 교체됩니다. '+
+      '<p class="adm-cd">문화빅데이터플랫폼(bigdata-culture.kr)에서 내려받은 <b>지역별스포츠강좌이용권활용정보</b> '+
+        'CSV를 그대로 올리면 화면 전체가 교체됩니다. 원본 컬럼(SIGNGU_NM, CRRSPND_FLAG_TRGET_NMPR_CO 등 영문 코드)을 '+
+        '그대로 인식해 수급구분(차상위·기초수급) 2개 행을 자동으로 합산합니다 — 엑셀에서 손대지 않고 받은 파일 그대로 올리면 됩니다. '+
         'UTF-8과 EUC-KR 둘 다 읽습니다. 파일은 브라우저 안에서만 처리하고 어디로도 전송하지 않습니다.</p>'+
       '<div class="adm-drop">'+
         '<p style="font-weight:700">CSV 파일 선택</p>'+
         '<input type="file" accept=".csv,text/csv" onchange="App.admLoadCSV(this)">'+
       '</div>'+
-      '<p class="src" style="margin-top:12px">필요한 컬럼 — <b>시군구명</b>, <b>해당구분대상인원수</b>, <b>해당구분대상수급인원수</b> (필수) · '+
-        '시도명, 시군구별인구수, 시군구별스포츠강좌이용권시설수 (있으면 함께 사용)</p>'+
+      '<p class="note" style="margin-top:12px;color:var(--lost)"><b>⚠ 새로고침·재접속하면 사라집니다.</b> 이 화면은 이 브라우저 탭에만 '+
+        '올려 미리보는 것이고, 서버에 저장되지 않는 임시 반영입니다. 확정하려면 [사각지대 분석]에서 <b>CSV 내려받기</b>로 '+
+        '계산 결과를 먼저 파일로 저장해두거나, 저장소가 있는 백엔드로 옮겨야 합니다.</p>'+
+      '<p class="src" style="margin-top:12px">직접 정리한 파일을 쓴다면 옛 방식(한글 헤더)도 지원합니다 — 필요한 컬럼: '+
+        '<b>시군구명</b>, <b>해당구분대상인원수</b>, <b>해당구분대상수급인원수</b> (필수) · 시도명, 시군구별인구수, '+
+        '시군구별스포츠강좌이용권시설수 (있으면 함께 사용)</p>'+
     '</div>'+
     '<div class="adm-card">'+
       '<h3>계산식</h3>'+
@@ -5127,6 +5248,133 @@ function admDataHTML(){
       '<h3>활용 데이터셋</h3>'+
       '<div class="tw"><table class="adm-t"><thead><tr><th>데이터셋 · 제공기관</th><th>갱신</th><th>활용</th><th>링크</th></tr></thead>'+
       '<tbody>'+ds+'</tbody></table></div>'+
+    '</div>'+
+    admRoadmapHTML();
+}
+
+/* CHG-68: 정책·현장·보안 세 관점으로 검토한 뒤 "지금 바로 구현" 대신 뒤로 미룬 항목을
+   숨기지 않고 여기 정직하게 남깁니다. 이유는 대부분 같습니다 — 이 사이트는 서버 없는
+   정적 사이트라서(GitHub Pages), 여러 사람이 함께 쓰는 저장·인증·이력 기능은 데이터를
+   지어내지 않고는 만들 수 없습니다. */
+function admRoadmapHTML(){
+  var items=[
+    ["연도별·월별 추이 비교","정책","지금은 스냅샷 1개 시점만 있습니다. CSV를 시점마다 쌓아 이력을 남기는 별도 저장소가 필요합니다."],
+    ["목표 수혜율 대비 진행률","정책","목표값 자체를 어디선가 입력받아야 하는데, 이 값을 공단이 공식적으로 어디에 발표하는지 확인되지 않아 임의로 만들지 않았습니다."],
+    ["로그인 계정 분리·권한 등급","보안","지금은 관리자 전원이 같은 비밀번호를 씁니다. 개인별 계정과 조회/수정 권한 구분은 인증 서버가 있어야 신뢰할 수 있습니다."],
+    ["변경 이력(감사로그)","보안","브라우저에만 남는 기록은 조작 가능해 감사 목적에 못 씁니다. 신뢰 가능한 로그는 서버 쪽 저장소가 있어야 합니다."],
+    ["업로드한 통계의 영구 저장","보안","지금은 새로고침하면 사라지는 미리보기입니다. 여러 담당자가 같은 데이터를 계속 보려면 DB가 필요합니다."],
+    ["예산 배분 시뮬레이션(what-if)","정책","가맹시설을 가상으로 늘렸을 때 지수가 어떻게 바뀌는지 미리 보는 기능 자체는 기존 산식으로 지금도 만들 수 있지만, «가정값과 실측값이 화면에서 섞여 보이는» 위험이 있어 UI를 더 신중히 설계한 뒤 넣기로 미뤘습니다."]
+  ];
+  return '<div class="adm-card">'+
+    '<h3>검토했지만 미룬 기능</h3>'+
+    '<p class="adm-cd">정책·현장·보안 세 관점에서 이 화면에 필요한 기능을 검토했습니다. 아래는 그중 지금 당장 만들지 않은 것과 그 이유입니다 — '+
+      '숨기지 않고 그대로 남겨둡니다. 대부분은 서버 없는 정적 사이트(GitHub Pages)라는 한계 때문입니다.</p>'+
+    '<table class="adm-t"><thead><tr><th>기능</th><th>제안 출처</th><th>왜 미뤘나</th></tr></thead><tbody>'+
+    items.map(function(it){
+      return '<tr><td><b>'+esc(it[0])+'</b></td><td><span class="chip c-gray">'+esc(it[1])+'</span></td><td>'+esc(it[2])+'</td></tr>';
+    }).join("")+
+    '</tbody></table>'+
+  '</div>';
+}
+
+/* ============================================================
+   CHG-68: 가맹시설 관리 탭 — 현장(지자체) 담당자용
+   민원 전화가 오면 시설 연락처를 바로 찾아야 하고, 장애인 이용권 등록시설
+   매칭이 "시설명+종목 문자열 대조"일 뿐 완전한 조인이 아니라는 걸 담당자가
+   근거를 눈으로 보고 판단할 수 있어야 한다는 현장 요구를 반영했습니다.
+   COURSES(강좌 단위)에서 시설 단위로 묶어 만들며, 실제로 등록된 강좌가
+   있는 시설만 잡힙니다 — 강좌가 0건인 "이름만 가맹" 시설까지는 지금 가진
+   데이터(강좌 목록)로는 알 수 없어 "휴면 시설" 판정은 넣지 않았습니다
+   (그렇게 말하면 근거 없는 값을 지어내는 게 됩니다).
+   ============================================================ */
+function maskTel(tel){
+  var s=String(tel||"").trim();
+  if(!s) return "";
+  /* 하이픈으로 구분된 형식이면 중간 토막만 별표로. 형식을 모르면 안전하게 그대로 둔다. */
+  var parts=s.split("-");
+  if(parts.length<2) return s;
+  for(var i=1;i<parts.length-1;i++) parts[i]=parts[i].replace(/./g,"•");
+  return parts.join("-");
+}
+function facilityRows(){
+  var byFac={};
+  COURSES.forEach(function(c){
+    var key=String(c.facility||"").trim();
+    if(!key) return;
+    var f=byFac[key];
+    if(!f) f=byFac[key]={ name:key, addr:c.addr||"", tel:c.tel||"", pres:c.pres||"", code:c.code||"",
+      sports:{}, courseCount:0, dv:"none", dvBasis:"" };
+    f.courseCount++;
+    if(!f.addr && c.addr) f.addr=c.addr;
+    if(!f.tel && c.tel) f.tel=c.tel;
+    if(!f.pres && c.pres) f.pres=c.pres;
+    if(c.sport) f.sports[c.sport]=1;
+    if(c.dvoucher){
+      f.dv="course";
+      f.dvBasis="같은 종목("+c.sport+") 등록강좌 확인됨";
+    } else if(c.dvoucherFacility && f.dv!=="course"){
+      f.dv="facility";
+      var others = c.dvCourses ? c.dvCourses.map(function(x){return x.sport;}).filter(function(v,i,a){return v&&a.indexOf(v)===i;}) : (c.dvNote?[c.dvNote]:[]);
+      f.dvBasis = others.length ? "등록시설 — 등록된 종목: "+others.join(", ") : "등록시설(등록 종목 정보 없음)";
+    }
+  });
+  return Object.keys(byFac).map(function(k){
+    var f=byFac[k];
+    f.sportList=Object.keys(f.sports).sort();
+    return f;
+  });
+}
+function admFacilityHTML(){
+  if(state.dv.status==="idle") App.ensureDvoucher();
+  var q=state.admin.facQ.trim();
+  var sort=state.admin.facSort;
+  var list=facilityRows();
+  if(q) list=list.filter(function(f){ return (f.name+" "+f.addr+" "+f.sportList.join(" ")).indexOf(q)>=0; });
+  var sorters={
+    name_asc:    function(a,b){ return a.name.localeCompare(b.name,"ko"); },
+    course_desc: function(a,b){ return b.courseCount-a.courseCount; },
+    course_asc:  function(a,b){ return a.courseCount-b.courseCount; },
+    dv_desc:     function(a,b){ var r={course:2,facility:1,none:0}; return r[b.dv]-r[a.dv]; }
+  };
+  list=list.slice().sort(sorters[sort]||sorters.course_desc);
+  var mask=state.admin.telMask;
+  var dvLabel={ course:'<span class="chip c-navy">♿ 등록강좌 확인</span>', facility:'<span class="chip c-gray">♿ 등록시설(강좌미확정)</span>', none:'' };
+
+  return '<div class="adm-card">'+
+      '<h3>가맹시설 목록</h3>'+
+      '<p class="adm-cd">이용자 화면이 쓰는 강좌 표본에서 시설 단위로 묶었습니다 — 등록강좌가 하나도 없는 시설은 '+
+        '이 목록에 아예 나타나지 않는다는 점에 주의하세요(그런 시설을 찾는 기능은 아직 없습니다). '+
+        '장애인 이용권 배지는 시설명+종목 문자열 대조 결과이며, 완전한 조인이 아니므로 근거를 함께 표시합니다.</p>'+
+      (state.dv.status==="error" ? '<p class="src">장애인 이용권 매칭 정보를 불러오지 못해 배지가 비어 있을 수 있어요. '+
+        '<button type="button" class="lnk" onclick="App.retryDvoucher()">다시 시도</button></p>' : "")+
+      '<div class="adm-rowbtns" style="margin:12px 0">'+
+        '<input class="tin" data-fk="admfacq" value="'+esc(state.admin.facQ)+'" placeholder="시설명·주소·종목 검색" '+
+          'oninput="App.admFacQ(this.value)" aria-label="가맹시설 검색" style="max-width:260px">'+
+        '<select class="sel-f" style="max-width:200px" onchange="App.admFacSort(this.value)" aria-label="정렬 기준">'+
+          '<option value="course_desc"'+(sort==="course_desc"?' selected':'')+'>등록강좌 많은 순</option>'+
+          '<option value="course_asc"'+(sort==="course_asc"?' selected':'')+'>등록강좌 적은 순</option>'+
+          '<option value="name_asc"'+(sort==="name_asc"?' selected':'')+'>시설명 가나다순</option>'+
+          '<option value="dv_desc"'+(sort==="dv_desc"?' selected':'')+'>장애인 이용권 등록시설 먼저</option>'+
+        '</select>'+
+        '<button type="button" class="btn btn-g btn-sm" onclick="App.admTelMask()">'+(mask?"전화번호 표시":"전화번호 가리기")+'</button>'+
+        '<button type="button" class="btn btn-g btn-sm" onclick="App.admFacExport()">CSV 내려받기</button>'+
+      '</div>'+
+      '<p class="src" style="margin:0 0 8px">'+anum(list.length)+'개 시설'+(q?' (검색 결과)':'')+' · 전화번호는 기본적으로 가려서 보여줍니다</p>'+
+      (list.length ? '<div class="adm-scroll"><table class="adm-t"><thead><tr>'+
+        '<th>시설명</th><th>주소</th><th>전화</th><th>종목</th><th class="n">등록강좌</th><th>장애인 이용권</th>'+
+        '</tr></thead><tbody>'+
+        list.slice(0,300).map(function(f){
+          return '<tr>'+
+            '<td><b>'+esc(f.name)+'</b>'+(f.pres?'<br><span class="src">대표자 '+esc(f.pres)+'</span>':'')+'</td>'+
+            '<td>'+esc(f.addr||"—")+'</td>'+
+            '<td class="mono">'+esc(f.tel ? (mask?maskTel(f.tel):f.tel) : "—")+'</td>'+
+            '<td>'+esc(f.sportList.join(", "))+'</td>'+
+            '<td class="n mono">'+f.courseCount+'</td>'+
+            '<td>'+(dvLabel[f.dv]||"")+(f.dvBasis?'<br><span class="src">'+esc(f.dvBasis)+'</span>':'')+'</td>'+
+          '</tr>';
+        }).join("")+'</tbody></table></div>'+
+        (list.length>300?'<p class="src" style="margin-top:8px">상위 300개만 표시합니다 — 검색으로 좁혀보세요.</p>':"")
+      : '<p class="adm-empty">검색 결과가 없습니다.</p>')+
     '</div>';
 }
 
@@ -5138,6 +5386,7 @@ function adminHTML(){
   var body;
   if(tab==="blindspot") body=admBlindspotHTML(rows,sum);
   else if(tab==="region") body=admRegionHTML(rows,sum);
+  else if(tab==="facility") body=admFacilityHTML();
   else if(tab==="demand") body=admDemandHTML();
   else if(tab==="data")   body=admDataHTML();
   else if(tab==="sources") body=sourcesHTML(true);
@@ -5498,10 +5747,54 @@ App.admLogout=function(){
 App.admTab=function(t){ state.admin.tab=t; render(); window.scrollTo(0,0); };
 App.admW=function(v){ state.admin.w=Number(v)/100; render(); };
 App.admQ=function(v){ state.admin.q=v; render(); };
+App.admSort=function(field){
+  if(state.admin.sort===field) state.admin.sortDir=(state.admin.sortDir==="asc"?"desc":"asc");
+  else { state.admin.sort=field; state.admin.sortDir="desc"; }
+  render();
+};
+App.admNoteAdd=function(sgg){
+  var el=document.getElementById("admNoteText");
+  var text=el?el.value.trim():"";
+  if(!text) return;
+  var notes=admNotesGet(sgg);
+  notes.push({ text:text, at:new Date().toLocaleString("ko-KR") });
+  admNotesSet(sgg, notes);
+  if(el) el.value="";
+  render();
+};
+App.admNoteDel=function(sgg, idx){
+  var notes=admNotesGet(sgg);
+  notes.splice(idx,1);
+  admNotesSet(sgg, notes);
+  render();
+};
 App.admRegion=function(sgg){
   state.admin.sgg=sgg||null; state.admin.tab="region"; render(); window.scrollTo(0,0);
 };
 App.admRecalc=function(){ adminRows(); App.toast("지표를 다시 계산했어요"); render(); };
+App.admFacQ=function(v){ state.admin.facQ=v; render(); };
+App.admFacSort=function(v){ state.admin.facSort=v; render(); };
+App.admTelMask=function(){ state.admin.telMask=!state.admin.telMask; render(); };
+App.admFacExport=function(){
+  var list=facilityRows();
+  var head=["시설명","주소","전화","대표자","종목","등록강좌수","장애인이용권상태","근거"];
+  var lines=[head.join(",")];
+  var dvText={course:"등록강좌 확인",facility:"등록시설(강좌미확정)",none:"해당없음"};
+  list.forEach(function(f){
+    lines.push([csvSafe(f.name),csvSafe(f.addr),csvSafe(f.tel),csvSafe(f.pres),
+      csvSafe(f.sportList.join("/")),f.courseCount,dvText[f.dv],csvSafe(f.dvBasis)]
+      .map(function(v){ return '"'+String(v==null?"":v).replace(/"/g,'""')+'"'; }).join(","));
+  });
+  try{
+    var blob=new Blob(["﻿"+lines.join("\n")],{type:"text/csv;charset=utf-8;"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="가맹시설목록_"+TODAY+".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
+    App.toast("가맹시설 목록을 내려받았어요 — 전화번호는 가려지지 않은 원본입니다, 취급에 주의하세요");
+  }catch(e){ App.toast("내려받기에 실패했어요"); }
+};
 App.admReset=function(){
   REGION_STATS = REGION_STATS_SEED.map(function(r){ return Object.assign({},r); });
   /* CHG-18: 시드 자체가 가맹시설수만 실측 반영된 "partial" 상태이므로, 되돌리기도 partial로 복원한다.
@@ -5517,7 +5810,8 @@ App.admExport=function(){
   var head=["순위","시도","시군구","대상인원","수급인원","수혜율","가맹시설수","공급밀도","사각지대지수","부족추정시설수"];
   var lines=[head.join(",")];
   rows.forEach(function(r,i){
-    lines.push([i+1,r.sido,r.sgg,r.target,r.benefit,(r.rate*100).toFixed(2)+"%",
+    /* 보안: CSV 인젝션 방지 — 시도·시군구명은 업로드 파일에서 온 문자열이라 csvSafe()로 무력화 */
+    lines.push([i+1,csvSafe(r.sido),csvSafe(r.sgg),r.target,r.benefit,(r.rate*100).toFixed(2)+"%",
       r.fac,r.density.toFixed(3),r.idx.toFixed(4),r.need].join(","));
   });
   lines.push("");
@@ -5551,9 +5845,11 @@ App.admLoadCSV=function(input){
     if(out.error){ App.toast(out.error); return; }
     REGION_STATS=out.rows;
     STATS_META={ origin:"upload", fileName:file.name, loadedAt:new Date().toLocaleString("ko-KR"),
-                 rows:out.rows.length, calcAt:null };
+                 rows:out.rows.length, calcAt:null, schema:out.schema };
     state.admin.sgg=null;
-    App.toast(out.rows.length+"개 시군구를 불러왔어요");
+    App.toast(out.rows.length+"개 시군구를 불러왔어요"+
+      (out.schema==="official"?" (문화빅데이터플랫폼 원본 컬럼 인식, 수급구분 2건 합산)":"")+
+      " — 새로고침하면 사라지니 계산·내보내기는 지금 끝내주세요");
     render();
   };
   rd.onerror=function(){ App.toast("파일을 읽지 못했어요"); };
