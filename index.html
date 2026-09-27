@@ -363,11 +363,14 @@ ul{margin:0;padding-left:18px}
 .sel-f{width:100%;min-height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-size:16px;color:var(--ink)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:520px){.grid2{grid-template-columns:1fr}}
+/* CHG-79: 진단 화면의 시/도 · 시/군/구 2단 선택 — 좁은 화면에서 select가 눌리지 않도록 minmax(0,1fr)로 고정, 480px 이하는 1열로 쌓음 */
+.qregion2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+@media(max-width:480px){.qregion2{grid-template-columns:minmax(0,1fr)}}
 .qfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 
 /* ---------- result ---------- */
 .res-g{display:grid;grid-template-columns:240px minmax(0,1fr);gap:32px;padding:36px 0 64px}
-@media(max-width:900px){.res-g{grid-template-columns:1fr;gap:20px}}
+@media(max-width:900px){.res-g{grid-template-columns:minmax(0,1fr);gap:20px}}
 .res-side{border:1px solid var(--line);border-radius:12px;padding:18px;height:fit-content;background:var(--bg-2)}
 .kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
 .kv:last-of-type{border-bottom:0}
@@ -388,7 +391,7 @@ ul{margin:0;padding-left:18px}
 .p3top h1{font-size:clamp(24px,4vw,34px);font-weight:800}
 .p3top p{margin-top:8px;color:#C9D6EE;font-size:15px}
 .p3g{display:grid;grid-template-columns:264px minmax(0,1fr);gap:26px;padding:24px 0 72px}
-@media(max-width:960px){.p3g{grid-template-columns:1fr}}
+@media(max-width:960px){.p3g{grid-template-columns:minmax(0,1fr)}}
 .filters{display:flex;flex-direction:column;gap:18px;height:fit-content}
 @media(max-width:960px){
   .filters{position:fixed;inset:auto 0 0 0;z-index:70;background:#fff;border-top:1px solid var(--line);
@@ -470,15 +473,18 @@ ul{margin:0;padding-left:18px}
 .mrow .ic{color:var(--faint)}
 .cbadges{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .cmoney{text-align:right;white-space:nowrap}
-.cmoney .k{font-size:12px;color:var(--muted);font-weight:700}
+.cmoney .k{font-size:12px;color:var(--muted);font-weight:700;display:block}
 .cmoney .v{font-size:20px;font-weight:800;letter-spacing:-.02em}
-.cmoney .s{font-size:12px;color:var(--muted);margin-top:2px}
+.cmoney .s{font-size:12px;color:var(--muted);margin-top:2px;display:block}
 .na{color:var(--faint)!important}
 @media(max-width:520px){
-  .crow{grid-template-columns:1fr}
-  .cmoney{text-align:left;display:flex;align-items:baseline;gap:8px;border-top:1px dashed var(--line);padding-top:8px}
+  .crow{grid-template-columns:minmax(0,1fr)}
+  .cmoney{text-align:left;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;border-top:1px dashed var(--line);padding-top:8px;white-space:normal}
   .cmoney .s{margin-top:0}
+  .cmoney > span:last-child{margin-left:auto}
 }
+/* 좁은 화면에서 운영자 표가 화면 밖으로 밀리지 않도록 표 안에서만 가로 스크롤 */
+@media(max-width:700px){ .adm-t{display:block;overflow-x:auto;white-space:nowrap;min-width:0!important;max-width:100%} }
 
 .combo{border:1px solid var(--line);border-radius:12px;padding:16px;background:linear-gradient(180deg,var(--orange-soft) 0%,#FFF 100%);margin-bottom:16px}
 .combo h3{font-size:16px;font-weight:800;margin-bottom:2px}
@@ -499,7 +505,7 @@ ul{margin:0;padding-left:18px}
 
 /* ---------- records ---------- */
 .p4g{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:26px;padding:34px 0 72px}
-@media(max-width:900px){.p4g{grid-template-columns:1fr}}
+@media(max-width:900px){.p4g{grid-template-columns:minmax(0,1fr)}}
 .rec{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fff;display:flex;flex-direction:column;gap:8px}
 .tgl{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink-2)}
 .tgl.on{background:var(--ok-soft);border-color:#BFDDCC;color:var(--ok)}
@@ -624,8 +630,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .adm-card > h3{font-size:15px;font-weight:800;margin-bottom:4px}
 .adm-card > .adm-cd{color:var(--muted);font-size:13px;margin-bottom:14px}
 .adm-2col{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start}
-@media(max-width:900px){.adm-2col{grid-template-columns:1fr}}
-.adm-bar{display:grid;grid-template-columns:96px 1fr 62px;align-items:center;gap:10px;
+@media(max-width:900px){.adm-2col{grid-template-columns:minmax(0,1fr)}}
+.adm-bar{display:grid;grid-template-columns:96px minmax(0,1fr) 62px;align-items:center;gap:10px;
   font-size:13px;padding:3px 0}
 .adm-bar .bt{color:var(--ink-2);font-weight:600;text-align:right;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap}
@@ -1861,7 +1867,7 @@ function buildPriceRanks(courses){
   for(i=0;i<courses.length;i++){
     c=courses[i];
     if(c.fee==null) continue;                        /* 가격 미확인 강좌는 순위 대상 아님 */
-    key=c.code+" "+c.sport;                     /* 지역코드 + 종목 (구분자는 데이터에 없는 문자) */
+    key=c.code+""+c.sport;                     /* 지역코드 + 종목 (구분자는 데이터에 없는 문자) */
     if(!Object.prototype.hasOwnProperty.call(buckets,key)) buckets[key]=[];
     buckets[key].push(c);
   }
@@ -2402,6 +2408,13 @@ var App={
     var first=regionsInSido(sido)[0];
     state.matchGate.sido=sido;
     state.matchGate.code=first?first.code:"";
+    render();
+  },
+  /* CHG-72: 진단 지역 — 시/도를 바꾸면 이전 시군구 답은 비워서 새 시/도의 시군구를 직접 고르게 한다 */
+  setQuizSido:function(sido){
+    state.quizSido=sido;
+    var cur=regionOf(state.answers.code);
+    if(!cur || cur.sido!==sido){ state.answers.code=""; persist(); }
     render();
   },
   setMatchGateCode:function(code){ state.matchGate.code=code; render(); },
@@ -3082,9 +3095,17 @@ function quizHTML(){
         '<b>'+esc(o[0])+'</b><span>'+esc(o[1])+'</span></button>';
     }).join("")+'</div>';
   } else {
-    body='<select class="sel-f" onchange="App.answer(\'code\',this.value)" aria-label="지역">'+
-      '<option value=""'+(a.code?'':' selected')+'>지역을 선택하세요</option>'+
-      regionOptions(a.code, null)+'</select>';
+    /* CHG-72: 233개 시군구를 한 목록에서 찾던 것을 «시/도 → 시/군/구» 2단계로 나눕니다. */
+    var qr=regionOf(a.code), qSido=state.quizSido || (qr?qr.sido:"");
+    body='<div class="qregion2">'+
+      '<div><label for="qSido" style="display:block;font-size:13px;font-weight:700;color:var(--ink-2);margin-bottom:6px">시/도</label>'+
+        '<select class="sel-f" id="qSido" onchange="App.setQuizSido(this.value)" aria-label="시/도">'+
+        '<option value=""'+(qSido?'':' selected')+'>시/도 선택</option>'+sidoOptionsHTML(qSido)+'</select></div>'+
+      '<div><label for="qSgg" style="display:block;font-size:13px;font-weight:700;color:var(--ink-2);margin-bottom:6px">시/군/구</label>'+
+        '<select class="sel-f" id="qSgg" onchange="App.answer(\'code\',this.value)" aria-label="시/군/구"'+(qSido?'':' disabled')+'>'+
+        '<option value=""'+(qr&&qr.sido===qSido?'':' selected')+'>'+(qSido?'시/군/구 선택':'시/도를 먼저 고르세요')+'</option>'+
+        (qSido? sggOptionsHTML(qSido, (qr&&qr.sido===qSido)?qr.code:null) : '')+'</select></div>'+
+    '</div>';
   }
 
   return '<main class="quiz"><div class="qcard">'+
@@ -3411,12 +3432,15 @@ function coursesHTML(){
       '<span class="mrow">'+icon("calendar",13)+esc(c.days.join("·")+"요일")+'</span>'+
       '<span class="mrow">'+icon("clock",13)+esc(SLOT_LABEL[c.slot])+'</span>'+
       (hasShuttle(c)?'<span class="mrow">'+icon("bus",13)+'셔틀 운영</span>':'');   /* CHG-25/67 */
+    /* CHG-71: 목록에서는 «얼마 남는지»보다 «강좌가 얼마인지»를 먼저 보여 달라는 요청에 따라
+       수강료를 크게 두고, 지원금 판정(남는 금액·자부담)은 그 아래에 작게 색으로 붙입니다. */
     var vd=c._verdict, money;
-    if(vd.k==="ok") money='<span class="k">이번 달</span><span class="v mono" style="color:var(--ok)">내 돈 0원</span><span class="s">추가 부담 없음</span>';
-    else if(vd.k==="left") money='<span class="k">이번 달</span><span class="v mono" style="color:var(--left)">'+won(vd.left)+' 남음</span><span class="s">지원금이 남아요</span>';
-    else if(vd.k==="pay") money='<span class="k">이번 달</span><span class="v mono" style="color:var(--lost)">매달 '+won(vd.self)+'</span><span class="s">더 내야 해요</span>';
-    else if(vd.k==="none") money='<span class="k">이번 달</span><span class="v mono na">—</span><span class="s">한도 확인 필요</span>';
-    else money='<span class="k">이번 달</span><span class="v mono na">—</span><span class="s">가격 확인 필요</span>';
+    var feeV = (c.fee!=null) ? '<span class="v mono">'+won(c.fee)+'</span>' : '<span class="v mono na">—</span>';
+    if(vd.k==="ok") money='<span class="k">수강료</span>'+feeV+'<span class="s" style="color:var(--ok);font-weight:700">추가 부담 없음</span>';
+    else if(vd.k==="left") money='<span class="k">수강료</span>'+feeV+'<span class="s" style="color:var(--left);font-weight:700">지원금 '+won(vd.left)+' 남아요</span>';
+    else if(vd.k==="pay") money='<span class="k">수강료</span>'+feeV+'<span class="s" style="color:var(--lost);font-weight:700">매달 '+won(vd.self)+' 더 내요</span>';
+    else if(vd.k==="none") money='<span class="k">수강료</span>'+feeV+'<span class="s">한도 확인 필요</span>';
+    else money='<span class="k">수강료</span>'+feeV+'<span class="s">가격 확인 필요</span>';
     var stripe = vd.k==="ok"?"ok":vd.k==="left"?"left":vd.k==="pay"?"pay":"none";
     return '<div class="crow v-'+stripe+(state.detailId===c.id?' on':'')+(picked?' picked':'')+'" role="button" tabindex="0" '+
       'onclick="App.openDetail('+j(c.id)+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();App.openDetail('+j(c.id)+')}">'+
@@ -5414,9 +5438,9 @@ function adminBySido(rows){
   }).sort(function(a,b){ return b.rate-a.rate; });
 }
 
-function adminRow(sgg){
+function adminRow(sgg, sido){
   var rows=adminRows();
-  for(var i=0;i<rows.length;i++) if(rows[i].sgg===sgg) return rows[i];
+  for(var i=0;i<rows.length;i++) if(rows[i].sgg===sgg && (!sido || rows[i].sido===sido)) return rows[i];
   return null;
 }
 
@@ -5596,7 +5620,7 @@ function bubbleSVG(rows, sum){
     var hot=(r.target>=xMid && r.rate<yMid);
     s+='<circle cx="'+X(r.target)+'" cy="'+Y(r.rate)+'" r="'+rad.toFixed(1)+'" '+
        'fill="'+(hot?"#BD2C0F":"#346FB2")+'" stroke="'+(hot?"#8A240F":"#063A74")+'" '+
-       'onclick="App.admRegion('+j(r.sgg)+')" tabindex="0">'+
+       'onclick="App.admRegion('+j(r.sgg)+','+j(r.sido)+')" tabindex="0">'+
        '<title>'+esc(r.sido+" "+r.sgg)+' — 수혜율 '+pct(r.rate)+' · 대상 '+anum(r.target)+'명 · 시설 '+anum(r.fac)+'개소</title>'+
        '</circle>';
   });
@@ -5660,7 +5684,7 @@ function admOverviewHTML(rows, sum){
   function miniTable(list, label){
     return '<table class="adm-t"><thead><tr><th>'+esc(label)+'</th><th class="n">수혜율</th><th class="n">대상</th></tr></thead><tbody>'+
       list.map(function(r){
-        return '<tr onclick="App.admRegion('+j(r.sgg)+')"><td>'+esc(r.sido.slice(0,2))+' '+esc(r.sgg)+'</td>'+
+        return '<tr onclick="App.admRegion('+j(r.sgg)+','+j(r.sido)+')"><td>'+esc(r.sido.slice(0,2))+' '+esc(r.sgg)+'</td>'+
           '<td class="n mono">'+pct(r.rate)+'</td><td class="n mono">'+anum(r.target)+'</td></tr>';
       }).join("")+'</tbody></table>';
   }
@@ -5755,7 +5779,7 @@ function admBlindspotHTML(rows, sum){
         th("rate","수혜율")+th("density","공급밀도")+th("pop","인구")+th("target","대상인원")+th("need","부족 추정")+
         '</tr></thead><tbody>'+
         list.map(function(r,i){
-          return '<tr onclick="App.admRegion('+j(r.sgg)+')">'+
+          return '<tr onclick="App.admRegion('+j(r.sgg)+','+j(r.sido)+')">'+
             '<td class="n mono">'+(i+1)+'</td><td>'+esc(r.sido)+'</td><td><b>'+esc(r.sgg)+'</b></td>'+
             '<td class="n mono"><b>'+r.idx.toFixed(3)+'</b></td>'+
             '<td class="n mono"'+(r.rate<sum.rate?' style="color:var(--lost)"':'')+'>'+pct(r.rate)+'</td>'+
@@ -5770,14 +5794,28 @@ function admBlindspotHTML(rows, sum){
 
 function admRegionHTML(rows, sum){
   var sel=state.admin.sgg;
-  var r=sel?adminRow(sel):null;
-  var opts=rows.map(function(x){
-    return '<option value="'+esc(x.sgg)+'"'+(sel===x.sgg?' selected':'')+'>'+esc(x.sido+" "+x.sgg)+'</option>';
+  var r=sel?adminRow(sel, state.admin.rsido):null;
+  /* CHG-73: 시군구 한 줄 목록 → «시/도 먼저, 그다음 시/군/구» 2단계 선택 */
+  var rSido = state.admin.rsido || (r?r.sido:"");
+  var sidos=[], seenS={};
+  rows.forEach(function(x){ if(!seenS[x.sido]){ seenS[x.sido]=1; sidos.push(x.sido); } });
+  sidos.sort(function(a,b){ return a.localeCompare(b,"ko"); });
+  var sidoOpts=sidos.map(function(sd){
+    return '<option value="'+esc(sd)+'"'+(rSido===sd?' selected':'')+'>'+esc(sd)+'</option>';
   }).join("");
+  var sggOpts=rows.filter(function(x){ return x.sido===rSido; })
+    .sort(function(a,b){ return a.sgg.localeCompare(b.sgg,"ko"); })
+    .map(function(x){
+      return '<option value="'+esc(x.sgg)+'"'+(r&&r.sido===x.sido&&sel===x.sgg?' selected':'')+'>'+esc(x.sgg)+'</option>';
+    }).join("");
   var picker='<div class="adm-card"><h3>지역 선택</h3>'+
-    '<select class="sel-f" style="max-width:320px" onchange="App.admRegion(this.value)" aria-label="시군구 선택">'+
-      '<option value="">— 시군구를 고르세요 —</option>'+opts+'</select></div>';
-  if(!r) return picker+'<p class="adm-empty">시군구를 선택하면 전국·시도 평균과 비교한 상세를 보여줍니다.</p>';
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<select class="sel-f" style="max-width:220px" onchange="App.admRegionSido(this.value)" aria-label="시/도 선택">'+
+        '<option value="">— 시/도 —</option>'+sidoOpts+'</select>'+
+      '<select class="sel-f" style="max-width:220px" onchange="App.admRegion(this.value,'+j(rSido)+')" aria-label="시군구 선택"'+(rSido?'':' disabled')+'>'+
+        '<option value="">'+(rSido?'— 시/군/구 —':'시/도를 먼저 고르세요')+'</option>'+sggOpts+'</select>'+
+    '</div></div>';
+  if(!r) return picker+'<p class="adm-empty">시/도와 시군구를 선택하면 전국·시도 평균과 비교한 상세를 보여줍니다.</p>';
 
   var sidoList=adminBySido(rows).filter(function(s){return s.sido===r.sido;})[0];
   function cmp(label, a, b, c, fmt){
@@ -6469,8 +6507,14 @@ App.admNoteDel=function(sgg, idx){
   admNotesSet(sgg, notes);
   render();
 };
-App.admRegion=function(sgg){
-  state.admin.sgg=sgg||null; state.admin.tab="region"; render(); window.scrollTo(0,0);
+App.admRegion=function(sgg, sido){
+  state.admin.sgg=sgg||null;
+  if(sido) state.admin.rsido=sido;
+  state.admin.tab="region"; render(); window.scrollTo(0,0);
+};
+/* CHG-73: 시/도를 바꾸면 선택된 시군구는 비운다(다른 시/도의 같은 이름 구와 섞이지 않도록) */
+App.admRegionSido=function(sido){
+  state.admin.rsido=sido||""; state.admin.sgg=null; render();
 };
 App.admRecalc=function(){ adminRows(); App.toast("지표를 다시 계산했어요"); render(); };
 App.admFacQ=function(v){ state.admin.facQ=v; render(); };
