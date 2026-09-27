@@ -1813,11 +1813,12 @@ function estimate(fee, limit, months){
 }
 
 /* CHG-17 — 지원금 당겨쓰기 월 계산 헬퍼.
-   실제로 존재하는 공식 제도입니다(2026.07.29 공지 확인): 유·청소년 이용권 이용자에 한해
-   월 지원금보다 비싼 강좌를 결제할 때 최대 2개월분 지원금을 합산 결제할 수 있고, 결제 시
-   자동 적용됩니다. 단 선결제(아직 수강하지 않은 강좌를 미리 결제)는 금지이며, 결제 후
-   1개월 안에 실제 수강·출석이 끝나야 합니다. 이 계산기는 결제 전 미리 금액을 가늠해보는
-   보조 도구이고, 실제 적용은 공식 결제 시스템에서 이뤄집니다. */
+   CHG-80 리서치로 재확인: 2025년 5월부터 지원금이 매월이 아니라 3개월분(31만 5천원, 월 10만
+   5천원×3)을 한 번에 한도로 지급하는 방식으로 바뀌어, 이번 달을 포함해 다음 2개월치 지원금을
+   별도 신청 없이 자동으로 당겨 쓸 수 있습니다(스포츠강좌이용권 공식 이용안내 기준). 다만 아직
+   수강하지 않은 강좌를 미리 결제하는 선결제는 금지이고, 정당한 사유 없이 출석률 50% 미만이면
+   부정사용으로 환수될 수 있습니다. 이 계산기는 결제 전 미리 금액을 가늠해보는 보조 도구이고,
+   실제 적용은 공식 결제 시스템에서 이뤄집니다. */
 function nextMonths(n){
   var p=(state.recYM||TODAY.slice(0,7)).split("-");   /* CHG-74: 데이터 기준일이 아니라 실제 이번 달 기준 */ var y=Number(p[0]), m=Number(p[1]);
   var out=[];
@@ -1954,13 +1955,15 @@ var state={
   matchGate:{ open:false, code:"", sido:"" },
   session:{ user:null, admin:false },
   auth:{ open:false, tab:"user", err:"" },
+  cardModal:false,   /* CHG-80: 이용권 전용 카드(데모) 등록·관리 창 */
   /* CHG-65: 장애인스포츠강좌이용권 등록강좌·시설 조인 데이터 (data/dvoucher.json) 로딩 상태 */
   dv:{ status:"idle" },
   /* CHG-71: 장바구니(state.picked 재사용) · 예약/결제 시뮬레이션 모달 상태.
      실제 예약·결제는 이뤄지지 않는 데모이며, 계산은 이 기기 안에서만 일어난다. */
   cartOpen:false, checkoutStep:"cart", checkoutReceipt:null,
   /* CHG-73: 주문서 입력값 · 예약/결제 내역 · 내역 상세/취소 창 */
-  checkout:{ method:"card", card:"신한카드", plan:"일시불", bank:"신한은행", agreeTerms:false, agreePriv:false, showTerms:false },
+  /* CHG-80: 결제수단은 로그인 시 자동 발급된 이용권 전용 카드 하나뿐이라 더는 고르지 않습니다 */
+  checkout:{ agreeTerms:false, agreePriv:false, showTerms:false },
   orders:[], orderTab:"all", orderView:null
 };
 
@@ -1989,7 +1992,7 @@ function restore(){
     if(Array.isArray(d.demand)) state.demand=d.demand;
     if(Array.isArray(d.advances)) state.advances=d.advances;
     if(Array.isArray(d.orders)) state.orders=d.orders.filter(function(o){ return o && o.no && Array.isArray(o.items); });
-    if(d.user && d.user.name) state.session.user=d.user;
+    if(d.user && d.user.name){ state.session.user=d.user; ensureCard(state.session.user); }   /* CHG-80: 이전 세션에도 카드 자동 보강 */
   }catch(e){}
 }
 function readQuery(){
@@ -2067,6 +2070,24 @@ function hashStr(s){
 function hasShuttle(c){
   if(!c||!c.facility) return false;
   return hashStr(c.facility)%100 < 40;
+}
+
+/* ============================================================
+   CHG-80 리서치로 재확인 — 실제 스포츠강좌이용권은 결제 시 카드사·은행을 자유롭게 고르는
+   구조가 아닙니다. 선정자는 신한카드의 «스포츠강좌이용권 전용 체크카드»를 발급받고,
+   수강료 중 지원금을 초과하는 본인부담금은 그 카드에 연결된 계좌에 미리 입금돼 있어야만
+   결제가 진행됩니다(계좌이체·다른 카드사·할부 결제 지원 안 함 — 공식 이용안내 기준).
+   이 앱은 실제 카드 발급·본인인증 없이 결제 흐름을 보여주는 데모이므로, 로그인 시 이 전용
+   카드를 자동으로 "발급"하고 연계 계좌에 데모용 잔액을 채워 둡니다. */
+function demoCardNo(uid){
+  var h=String(hashStr("card:"+String(uid||"")));
+  while(h.length<8) h="0"+h;
+  h=h.slice(-8);
+  return "9430-12"+h.slice(0,2)+"-****-"+h.slice(2,6);
+}
+function ensureCard(user){
+  if(user && !user.card) user.card={ no:demoCardNo(user.id), bank:"신한은행", balance:50000, justIssued:true };
+  return user;
 }
 
 /* ============================================================
@@ -2570,8 +2591,19 @@ var App={
     state.checkoutStep="confirm"; render();
   },
   cartBackToCart:function(){ state.checkoutStep="cart"; render(); },
-  setPayMethod:function(m){ state.checkout.method=m; render(); },
-  setPayField:function(k,v){ state.checkout[k]=v; render(); },
+  /* CHG-80: 결제수단 선택 UI를 제거하면서 이 두 액션은 더 이상 쓰지 않습니다(카드 하나로 고정) */
+  topUpCard:function(amt){
+    var u=state.session.user; if(!u) return;
+    ensureCard(u); u.card.balance += (amt||50000);
+    persist(); App.toast("데모 충전: "+won(amt||50000)+" 입금 (잔액 "+won(u.card.balance)+")");
+    render();
+  },
+  openCardInfo:function(){ state.cardModal=true; render(); },
+  closeCardInfo:function(){ state.cardModal=false; render(); },
+  dismissCardNotice:function(){
+    var u=state.session.user; if(u&&u.card) u.card.justIssued=false;
+    persist(); render();
+  },
   toggleAgree:function(k){
     if(k==="all"){ var on=!(state.checkout.agreeTerms&&state.checkout.agreePriv); state.checkout.agreeTerms=on; state.checkout.agreePriv=on; }
     else state.checkout[k]=!state.checkout[k];
@@ -2587,10 +2619,13 @@ var App={
     setTimeout(function(){ App._finishOrder(q); }, 1200);
   },
   _finishOrder:function(q){
-    var now=new Date(), co=state.checkout;
-    var method = q.selfTotal>0
-      ? (co.method==="bank" ? { type:"bank", name:co.bank } : { type:"card", name:co.card, plan:co.plan })
-      : null;
+    var now=new Date();
+    /* CHG-80: 본인부담금은 로그인한 이용자의 이용권 전용 카드 연계 계좌에서 실제로 차감합니다(데모) */
+    var method=null;
+    if(q.selfTotal>0){
+      var u=state.session.user;
+      if(u){ ensureCard(u); u.card.balance-=q.selfTotal; method={ type:"card", no:u.card.no, bank:u.card.bank }; }
+    }
     var order={
       no:orderNo(now), at:now.toISOString(), ym:state.recYM, status:"reserved",
       method:method, voucherTotal:q.voucherTotal, pullTotal:q.pullTotal, pull:q.pull, selfTotal:q.selfTotal, total:q.total,
@@ -2612,7 +2647,7 @@ var App={
     if(state.orders.length>50) state.orders=state.orders.slice(0,50);
     state.checkoutReceipt=order.no;
     state.checkoutStep="done";
-    co.agreeTerms=false; co.agreePriv=false; co.showTerms=false;
+    state.checkout.agreeTerms=false; state.checkout.agreePriv=false; state.checkout.showTerms=false;
     persist(); render();
   },
   /* 지난달 강좌 다시 신청 — 자동 이월(carry)과는 별개로, 언제든 지난 기록에서 다시 담을 수 있게 함 */
@@ -2641,6 +2676,11 @@ var App={
     if(!v.reason){ App.toast("취소 사유를 골라주세요"); return; }
     if(!canCancelOrder(o)){ App.toast("취소 요청 기한이 지났어요"); return; }
     o.status="cancelled"; o.cancelAt=new Date().toISOString(); o.cancelReason=v.reason;
+    /* CHG-80: 본인부담금을 카드 연계 계좌에서 차감했었다면, 취소 시 그 계좌로 되돌려줍니다(데모) */
+    if(o.selfTotal>0 && o.method && o.method.type==="card" && state.session.user){
+      ensureCard(state.session.user);
+      state.session.user.card.balance += o.selfTotal;
+    }
     o.items.forEach(function(x){ var r=state.rec[x.id]; if(r && r.orderNo===o.no) delete state.rec[x.id]; });
     v.step="cancelled";
     persist(); render();
@@ -2798,6 +2838,7 @@ function authBarHTML(){
       '<button type="button" class="hd-who" onclick="App.go(\'records\')" aria-label="내 기록으로 이동">'+
         '<span class="hd-ava" aria-hidden="true">'+esc(s.user.name.slice(0,1))+'</span>'+
         '<span class="hd-nm">'+esc(s.user.name)+'님</span></button>'+
+      '<button type="button" class="hd-adm" onclick="App.openCardInfo()">'+icon("won",13)+' 카드 관리</button>'+
       '<button type="button" onclick="App.logout()">로그아웃</button>'+
     '</div>';
   }
@@ -4307,7 +4348,7 @@ function advanceModalHTML(){
   var c=null; for(var i=0;i<COURSES.length;i++) if(COURSES[i].id===id) c=COURSES[i];
   var L=monthlyLimit(state.answers);
   if(!c||L==null) return "";
-  if(state.answers.disability==="있음") return ""; /* 장애인 이용권은 당겨쓰기 제도 대상 아님(공식 공지 확인) */
+  if(state.answers.disability==="있음") return ""; /* 장애인 이용권의 당겨쓰기 적용 여부는 공식 자료에서 명확히 확인하지 못해, 이 계산기에서는 대상에서 제외합니다 */
   var vd=verdict(c.fee,L);
   if(vd.k!=="pay") return "";
   var n=state.advPick||1;
@@ -4361,9 +4402,6 @@ function advanceModalHTML(){
    · 결제취소는 전액 취소만 가능하고, 결제일에 따라 정해진 기한까지 요청해야 하며
      가맹시설의 취소 승인이 필요하다(svoucher.kspo.or.kr 안내 기준).
    ============================================================ */
-var CARD_COS=["신한카드","KB국민카드","삼성카드","현대카드","롯데카드","하나카드","우리카드","BC카드","NH농협카드"];
-var CARD_PLANS=["일시불","2개월","3개월"];
-var BANKS=["신한은행","KB국민은행","우리은행","하나은행","NH농협은행","IBK기업은행","카카오뱅크","토스뱅크","새마을금고","우체국"];
 var CANCEL_REASONS=["수업 일정이 맞지 않아요","다른 강좌로 바꾸고 싶어요","시설 사정으로 수업이 어려워요","아이가 다니기 어려워졌어요","기타"];
 
 function pad2(n){ return (n<10?"0":"")+n; }
@@ -4404,7 +4442,7 @@ function orderStatus(o){
 }
 function methodLabel(m){
   if(!m) return "본인부담금 없음";
-  return m.type==="bank"? m.name+" 계좌이체" : m.name+" · "+(m.plan||"일시불");
+  return (m.bank||"이용권 카드")+" 연계계좌 · "+(m.no||"");
 }
 function schedLabel(x){
   var slot=(x.slot&&SLOT_LABEL[x.slot])?" · "+SLOT_LABEL[x.slot]:"";
@@ -4452,7 +4490,14 @@ function pullLabel(pull){ return pull.map(function(p){ return monthLabel(p.ym); 
 function checkoutBlocker(q){
   if(!q.items.length) return "결제할 강좌가 없어요";
   if(q.L==null) return "지원 구분을 먼저 골라주세요";
-  if(q.selfTotal>0 && !state.checkout.method) return "본인부담금 결제수단을 골라주세요";
+  /* CHG-80: 본인부담금은 이용권 전용 카드의 연계 계좌 잔액으로만 결제되며(공식 이용안내 기준),
+     계좌이체·다른 카드 선택은 지원하지 않습니다. 로그인해서 카드가 있어야 하고, 잔액이 본인부담금보다 적으면 결제를 막습니다. */
+  if(q.selfTotal>0){
+    var u=state.session.user;
+    if(!u) return "본인부담금이 있는 주문이에요. 먼저 로그인해주세요";
+    ensureCard(u);
+    if(u.card.balance < q.selfTotal) return "이용권 카드 연계 계좌 잔액이 부족해요. 충전 후 다시 시도해주세요";
+  }
   if(!state.checkout.agreeTerms || !state.checkout.agreePriv) return "필수 약관에 동의해주세요";
   return "";
 }
@@ -4503,25 +4548,24 @@ function priceBoxHTML(q, title){
       (q.pullTotal>0?' · '+esc(pullLabel(q.pull))+' 지원금에서 '+won(q.pullTotal)+'을 미리 당겨 써서 그만큼 그달 지원금이 줄어요':'')+'</p>':'')+
   '</div>';
 }
+/* CHG-80 리서치로 재확인: 실제로는 카드사·계좌이체를 고르는 게 아니라, 선정자에게 발급되는
+   «스포츠강좌이용권 전용 체크카드» 하나로만 결제하고, 본인부담금은 그 카드에 연결된 계좌
+   잔액에서 빠져나갑니다(공식 이용안내 기준). 그래서 이 화면도 결제수단을 고르는 대신
+   로그인 시 자동 발급된 카드 정보와 잔액만 보여줍니다. */
 function payMethodHTML(q){
-  var co=state.checkout;
   if(q.selfTotal<=0) return '<div class="paybox"><b style="font-size:14px">결제수단</b>'+
     '<p class="note" style="margin-top:6px">본인부담금이 없어요. 수강료 전액이 <b>스포츠강좌이용권 카드</b> 지원금으로 결제돼요.</p></div>';
-  function tile(v,t,s){ var on=co.method===v;
-    return '<button type="button" class="opt'+(on?' on':'')+'" onclick="App.setPayMethod('+j(v)+')" aria-pressed="'+on+'"><b>'+t+'</b><span>'+s+'</span></button>'; }
-  function sel(k,list,label){
-    return '<select class="sel-f" style="min-height:40px;font-size:14px" aria-label="'+label+'" onchange="App.setPayField('+j(k)+',this.value)">'+
-      list.map(function(x){ return '<option'+(co[k]===x?' selected':'')+'>'+esc(x)+'</option>'; }).join("")+'</select>';
-  }
-  var detail = co.method==="bank"
-    ? '<div class="payd"><label class="src">출금 은행</label>'+sel("bank",BANKS,"출금 은행")+'</div>'
-    : co.method==="card"
-      ? '<div class="payd" style="display:grid;grid-template-columns:2fr 1fr;gap:8px"><div><label class="src">카드사</label>'+sel("card",CARD_COS,"카드사")+'</div>'+
-          '<div><label class="src">할부</label>'+sel("plan",CARD_PLANS,"할부")+'</div></div>'
-      : '';
+  var u=state.session.user;
+  if(!u) return '<div class="paybox"><b style="font-size:14px">본인부담금 '+won(q.selfTotal)+' 결제수단</b>'+
+    '<p class="note" style="margin-top:6px">본인부담금은 이용권 전용 카드로만 결제돼요. 먼저 <button type="button" class="lnk" onclick="App.openAuth(\'user\')">로그인</button>해주세요.</p></div>';
+  ensureCard(u);
+  var short = u.card.balance<q.selfTotal;
   return '<div class="paybox"><b style="font-size:14px">본인부담금 '+won(q.selfTotal)+' 결제수단</b>'+
-    '<div class="opts" style="margin-top:8px">'+tile("card","신용·체크카드","카드사 선택")+tile("bank","계좌이체","은행 선택")+'</div>'+
-    detail+
+    '<div class="kv" style="margin-top:8px"><b>이용권 전용 카드</b><span class="mono">'+esc(u.card.no)+'</span></div>'+
+    '<div class="kv"><b>연계 계좌 잔액</b><span class="mono" style="color:'+(short?'var(--lost)':'var(--ok)')+'">'+won(u.card.balance)+'</span></div>'+
+    (short? '<p class="note" style="margin-top:6px;color:var(--lost)">잔액이 본인부담금보다 적어서 결제가 안 돼요. 실제로도 이용권 카드 연계 계좌에 부담금만큼 미리 입금돼 있어야 결제가 진행돼요.</p>'+
+      '<button type="button" class="btn btn-o btn-sm" style="margin-top:8px" onclick="App.topUpCard(50000)">데모 충전(5만원)</button>'
+      : '<p class="note" style="margin-top:6px">잔액에서 본인부담금이 빠져나가요(계좌이체·다른 카드 선택은 지원하지 않아요).</p>')+
     '<p class="src" style="margin-top:8px">지원금 '+won(q.voucherTotal)+(q.pullTotal>0?'(당겨쓰기 '+won(q.pullTotal)+' 포함)':'')+'은 스포츠강좌이용권 카드로 먼저 결제돼요.</p></div>';
 }
 function agreeHTML(){
@@ -4805,6 +4849,32 @@ function authModalHTML(){
     '</div></div>';
 }
 
+/* ---------- CHG-80: 이용권 전용 카드(데모) 등록·관리 창 ----------
+   실제로는 선정 문자 수신 후 신한카드 홈페이지·전화로 본인이 직접 카드를 신청합니다.
+   이 앱은 그 절차를 대신할 수 없는 데모라, 로그인하면 카드를 자동으로 "발급"해 보여주고,
+   본인부담금 결제에 필요한 연계 계좌 잔액도 데모로 채워/충전할 수 있게만 합니다. */
+function cardModalHTML(){
+  var u=state.session.user;
+  if(!u || (!state.cardModal && !u.card.justIssued)) return "";
+  ensureCard(u);
+  var first=!!u.card.justIssued;
+  return '<div class="ov" onclick="App.'+(first?'dismissCardNotice':'closeCardInfo')+'()" role="dialog" aria-modal="true" aria-label="이용권 전용 카드">'+
+    '<div class="mod" onclick="App.stop(event)" style="max-width:420px">'+
+      '<div class="mod-h"><div>'+
+        '<span class="eyebrow">'+(first?'카드 자동 등록됨(데모)':'카드 관리')+'</span>'+
+        '<h2 style="font-size:20px;font-weight:800;margin-top:6px">스포츠강좌이용권 전용 카드</h2></div>'+
+        '<button type="button" class="icb" onclick="App.'+(first?'dismissCardNotice':'closeCardInfo')+'()" aria-label="닫기">✕</button></div>'+
+      (first? '<p class="note" style="margin-top:2px">실제로는 선정 문자 수신 후 신한카드에서 본인이 직접 신청해야 하는 «스포츠강좌이용권 전용 체크카드»예요. '+
+        '이 앱은 결제 데모를 위해 로그인할 때 자동으로 카드를 연결해 드려요.</p>' : '')+
+      '<div class="kv" style="margin-top:14px"><b>카드 번호</b><span class="mono">'+esc(u.card.no)+'</span></div>'+
+      '<div class="kv"><b>연계 은행</b><span class="mono">'+esc(u.card.bank)+'</span></div>'+
+      '<div class="kv"><b>연계 계좌 잔액</b><span class="mono">'+won(u.card.balance)+'</span></div>'+
+      '<p class="src" style="margin-top:10px">본인부담금(자부담)은 결제 전 이 잔액에서 자동으로 빠져나가요. '+
+        '계좌이체나 다른 카드로는 결제할 수 없고, 잔액이 모자라면 결제가 진행되지 않아요(공식 이용안내 기준).</p>'+
+      '<button type="button" class="btn btn-o btn-blk" style="margin-top:14px" onclick="App.topUpCard(50000)">데모 충전(5만원)</button>'+
+    '</div></div>';
+}
+
 /* ---------- CHG-55: 종목 찾기 지역 확인 창 ---------- */
 /* CHG-69: 233개 시군구를 한 목록에 늘어놓으면 원하는 곳을 찾기 어렵다는 지적을 받아,
    시/도를 먼저 큰 단위로 고르고 그 안에서 시군구를 고르는 2단계로 나눴습니다. */
@@ -4911,7 +4981,8 @@ function announce(msg){
   if(el) el.textContent=msg;
 }
 function modalOpenNow(){
-  return !!(state.auth.open || state.advModal || state.modal || state.cartOpen || state.orderView || (state.matchGate&&state.matchGate.open));
+  return !!(state.auth.open || state.advModal || state.modal || state.cartOpen || state.orderView || (state.matchGate&&state.matchGate.open) ||
+    state.cardModal || (state.session.user && state.session.user.card && state.session.user.card.justIssued));
 }
 function focusKeyOf(el){
   try{ return (el && el.getAttribute) ? el.getAttribute("onclick") : null; }catch(e){ return null; }
@@ -4941,7 +5012,7 @@ function renderInner(){
   }
   var html=(state.route==="admin")
     ? '<div class="gov-bar wrap" style="padding:6px 16px;font-size:12px;color:var(--muted)">국민체육진흥공단 · 스포츠강좌이용권 운영자 화면(공모전 데모)</div>'+main+authModalHTML()
-    : header()+main+footer()+modalHTML()+advanceModalHTML()+authModalHTML()+matchGateHTML()+cartModalHTML()+orderModalHTML();
+    : header()+main+footer()+modalHTML()+advanceModalHTML()+authModalHTML()+matchGateHTML()+cartModalHTML()+orderModalHTML()+cardModalHTML();
   if(state.toast) html+='<div class="toast" role="status">'+mascotIMG("good",20,"mascot-toast")+esc(state.toast)+'</div>';
   /* CHG-73: 주문서처럼 긴 모달 안에서 결제수단·동의를 누를 때마다 맨 위로 튀지 않도록,
      같은 창(aria-label)이 다시 그려지면 모달 안 스크롤 위치를 되살린다 */
@@ -6437,6 +6508,7 @@ App.submitAuth=function(){
   if(upw.length<4){ state.auth.err="비밀번호는 4자 이상이에요."; render(); return; }
   var nm = (uid===DEMO_USER.id) ? DEMO_USER.name : uid;
   state.session.user={ id:uid, name:nm, at:TODAY };
+  ensureCard(state.session.user);   /* CHG-80: 로그인 시 이용권 전용 카드 자동 "발급"(데모) */
   state.auth={ open:false, tab:"user", err:"" };
   persist();
   App.toast(nm+"님, 반가워요");
@@ -6620,6 +6692,8 @@ document.addEventListener("keydown",function(e){
     if(state.auth.open){ App.closeAuth(); }
     else if(state.advModal){ App.closeAdvance(); }
     else if(state.modal){ App.closeModal(); }
+    else if(state.session.user && state.session.user.card && state.session.user.card.justIssued){ App.dismissCardNotice(); }
+    else if(state.cardModal){ App.closeCardInfo(); }
     else if(state.filtersOpen){ App.toggleFilters(); }
     else if(state.detailId){ App.closeDetail(); }
   }
