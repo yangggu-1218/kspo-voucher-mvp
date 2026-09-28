@@ -2050,13 +2050,14 @@ function shareUrl(){
 function questions(){
   var a=state.answers;
   return [
-    { key:"birthYear", title:"아이가 몇 년생인가요?", hint:"공고가 출생연도 기준이라 연도로 받아요.", kind:"year",
+    { key:"disability", title:"장애 등록을 하셨나요?", hint:"장애인스포츠강좌이용권은 만 5~69세까지, 일반 스포츠강좌이용권과는 대상 연령이 달라서 먼저 여쭤봐요.", kind:"choice",
+      opts:[["있음","장애인 등록증 보유"],["없음","등록하지 않았어요"]], ready:!!a.disability },
+    { key:"birthYear", title:a.disability==="있음"?"몇 년생인가요?":"아이가 몇 년생인가요?",
+      hint:a.disability==="있음"?"장애인스포츠강좌이용권은 만 5~69세(출생연도 기준)가 대상이에요.":"공고가 출생연도 기준이라 연도로 받아요.", kind:"year",
       ready:!!a.birthYear },
     { key:"grade", title:"지금 받고 있는 지원이 있나요?", hint:"해당하는 것을 하나만 골라주세요.", kind:"choice",
       opts:[["기초생활수급","생계·의료·주거·교육급여"],["차상위","차상위 계층 확인서 보유"],["한부모","한부모가족 증명서 보유"],["해당없음","위 항목에 없어요"]],
       ready:!!a.grade },
-    { key:"disability", title:"장애 등록을 하셨나요?", hint:"장애인 전용 이용권 대상 여부를 확인해요.", kind:"choice",
-      opts:[["있음","장애인 등록증 보유"],["없음","등록하지 않았어요"]], ready:!!a.disability },
     { key:"code", title:"어디에 살고 계세요?", hint:"지역에 따라 이용할 수 있는 강좌가 달라요.", kind:"region",
       ready:!!a.code }
   ];
@@ -3140,7 +3141,10 @@ function quizHTML(){
   var qs=questions(), q=qs[state.step], a=state.answers, body="";
 
   if(q.kind==="year"){
-    var years=[]; for(var y=THIS_YEAR-18;y<=THIS_YEAR-5;y++) years.push(y);
+    /* CHG-83: 장애인스포츠강좌이용권은 만 5~69세가 대상(일반 이용권은 만 5~18세)이라,
+       장애 등록 여부에 따라 출생연도 선택지 범위를 다르게 보여줍니다. */
+    var maxAge=(a.disability==="있음")?69:18;
+    var years=[]; for(var y=THIS_YEAR-maxAge;y<=THIS_YEAR-5;y++) years.push(y);
     body='<select class="sel-f" onchange="App.answer(\'birthYear\',this.value)" aria-label="출생연도">'+
       '<option value="">출생연도를 선택하세요</option>'+
       years.map(function(v){
