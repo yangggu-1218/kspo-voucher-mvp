@@ -1971,7 +1971,7 @@ var state={
   /* CHG-55: 종목 찾기 진입 전 지역 확인 창. code는 선택 중인 값(확정 전), open=true면 창이 떠 있음 */
   matchGate:{ open:false, code:"", sido:"" },
   session:{ user:null, admin:false },
-  auth:{ open:false, tab:"user", err:"" },
+  auth:{ open:false, tab:"user", err:"", signup:false, signupMsg:"" },
   cardModal:false,   /* CHG-80: 이용권 전용 카드(데모) 등록·관리 창 */
   /* CHG-65: 장애인스포츠강좌이용권 등록강좌·시설 조인 데이터 (data/dvoucher.json) 로딩 상태 */
   dv:{ status:"idle" },
@@ -2579,14 +2579,26 @@ var App={
     state.advances=state.advances.filter(function(r){ return r.id!==id; });
     persist(); render();
   },
+  /* CHG-84: 강좌 담기는 로그인이 필요한 행동 — 로그인 전이면 담는 대신 로그인 창을 먼저 띄운다 */
   togglePick:function(id,e){
     if(e) e.stopPropagation();
+    if(!state.session.user){ App.requireLogin("강좌를 담으려면 먼저 로그인해주세요"); return; }
     var i=state.picked.indexOf(id);
     if(i>=0) state.picked.splice(i,1); else state.picked.push(id);
     render();
   },
-  applyCombo:function(ids){ state.picked=ids.slice(); App.toast("조합을 담았어요"); },
+  applyCombo:function(ids){
+    if(!state.session.user){ App.requireLogin("강좌를 담으려면 먼저 로그인해주세요"); return; }
+    state.picked=ids.slice(); App.toast("조합을 담았어요");
+  },
   clearPicks:function(){ state.picked=[]; render(); },
+  /* CHG-84: 로그인이 필요한 행동을 누르면 이유와 함께 로그인 창을 띄운다 */
+  requireLogin:function(msg){
+    state.auth={ open:true, tab:"user", err:"", signup:false, signupMsg:"" };
+    state.modal=null; state.advModal=null;
+    render();
+    if(msg) App.toast(msg);
+  },
 
   /* ============================================================
      CHG-71/73 장바구니 → 주문서 → 결제 → 예약 완료 → 예약·결제 내역 → 취소
@@ -2595,7 +2607,11 @@ var App={
      (state.orders), 담은 강좌를 내 기록에 결제 완료로 옮긴다. 모든 값은 이 기기에만 저장된다.
      결제취소 기한·전액취소·시설 승인 규칙은 공식 사이트(svoucher.kspo.or.kr) 안내를 따른다.
      ============================================================ */
-  openCart:function(){ state.cartOpen=true; state.checkoutStep="cart"; render(); },
+  /* CHG-84: 결제(장바구니)도 로그인이 필요한 행동 */
+  openCart:function(){
+    if(!state.session.user){ App.requireLogin("결제를 진행하려면 먼저 로그인해주세요"); return; }
+    state.cartOpen=true; state.checkoutStep="cart"; render();
+  },
   closeCart:function(){
     if(state.checkoutStep==="processing") return;   /* 결제 처리 중에는 닫지 않음 */
     state.cartOpen=false; state.checkoutStep="cart"; state.checkoutReceipt=null;
@@ -2621,6 +2637,20 @@ var App={
   dismissCardNotice:function(){
     var u=state.session.user; if(u&&u.card) u.card.justIssued=false;
     persist(); render();
+  },
+  /* CHG-84: 최초 로그인 카드 등록 — 자동입력 버튼은 데모 카드번호를 입력칸에 채워주기만 하고,
+     실제로 «등록 완료»를 눌러야(입력칸이 비어있지 않아야) 알림이 닫히고 앱을 계속 쓸 수 있다. */
+  fillCardEntry:function(){
+    var u=state.session.user; if(!u||!u.card) return;
+    var el=document.getElementById("cardNoInput");
+    if(el){ el.value=u.card.no; el.focus(); }
+  },
+  confirmCardEntry:function(){
+    var el=document.getElementById("cardNoInput");
+    var v=el?String(el.value||"").trim():"";
+    if(!v){ App.toast("카드번호를 입력하거나 자동입력을 눌러주세요"); return; }
+    App.dismissCardNotice();
+    App.toast("카드 등록이 완료됐어요");
   },
   toggleAgree:function(k){
     if(k==="all"){ var on=!(state.checkout.agreeTerms&&state.checkout.agreePriv); state.checkout.agreeTerms=on; state.checkout.agreePriv=on; }
@@ -4848,9 +4878,27 @@ function authModalHTML(){
       '</div>'+
       (err?'<p class="auth-err">'+esc(err)+'</p>':'')+
       '<button type="button" class="btn btn-o btn-blk" style="margin-top:16px" onclick="App.submitAuth()">로그인</button>'+
-      '<button type="button" class="btn btn-g btn-blk btn-sm" style="margin-top:8px" onclick="App.fillDemo()">체험용 계정 자동입력</button>'+
-      '<p class="src" style="margin-top:14px">체험용 계정 <b class="mono">'+esc(DEMO_USER.id)+' / '+esc(DEMO_USER.pw)+'</b> · '+
-        '진단 결과와 담은 강좌는 로그인과 상관없이 이 기기에 남아요.</p>';
+      '<button type="button" class="btn btn-g btn-blk btn-sm" style="margin-top:8px" onclick="App.fillDemo()">심사용 계정 자동입력</button>'+
+      '<p class="src" style="margin-top:14px">심사용 계정 <b class="mono">'+esc(DEMO_USER.id)+' / '+esc(DEMO_USER.pw)+'</b> · '+
+        '진단 결과와 담은 강좌는 로그인과 상관없이 이 기기에 남아요.</p>'+
+      '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">'+
+        (state.auth.signup
+          ? '<div class="auth-f">'+
+              '<label for="suName">이름</label>'+
+              '<input class="tin" id="suName" placeholder="이름" autocomplete="off">'+
+              '<label for="suId">아이디</label>'+
+              '<input class="tin" id="suId" placeholder="사용할 아이디" autocomplete="off">'+
+              '<label for="suPw">비밀번호</label>'+
+              '<input class="tin" id="suPw" type="password" placeholder="비밀번호(4자 이상)" autocomplete="off">'+
+              '<label for="suPw2">비밀번호 확인</label>'+
+              '<input class="tin" id="suPw2" type="password" placeholder="비밀번호 확인" autocomplete="off">'+
+            '</div>'+
+            (state.auth.signupMsg?'<p class="auth-err">'+esc(state.auth.signupMsg)+'</p>':'')+
+            '<button type="button" class="btn btn-o btn-blk btn-sm" style="margin-top:10px" onclick="App.submitSignup()">가입하기(데모)</button>'+
+            '<button type="button" class="btn btn-g btn-blk btn-sm" style="margin-top:6px" onclick="App.toggleSignup()">취소</button>'+
+            '<p class="src" style="margin-top:10px">화면 흐름만 보여주는 회원가입 모형이에요. 실제 시행 때는 정부24·공단 통합 가입으로 연결됩니다.</p>'
+          : '<button type="button" class="btn btn-g btn-blk btn-sm" onclick="App.toggleSignup()">아직 계정이 없으신가요? 회원가입</button>')+
+      '</div>';
 
   return '<div class="ov" onclick="App.closeAuth()" role="dialog" aria-modal="true" aria-label="로그인">'+
     '<div class="mod" onclick="App.stop(event)" style="max-width:420px">'+
@@ -4876,23 +4924,38 @@ function cardModalHTML(){
   if(!u || (!state.cardModal && !u.card.justIssued)) return "";
   ensureCard(u);
   var first=!!u.card.justIssued;
-  return '<div class="ov" onclick="App.'+(first?'dismissCardNotice':'closeCardInfo')+'()" role="dialog" aria-modal="true" aria-label="이용권 전용 카드">'+
+  /* CHG-84: 최초 로그인 시에는 «자동 발급됨»을 그냥 보여주고 닫게 하는 대신,
+     실제 서비스처럼 카드번호를 확인·등록하는 절차를 한 번 거치게 한다.
+     자동입력 버튼으로 데모 번호를 채울 수 있고, «등록 완료»를 눌러야 다음으로 진행된다.
+     (overlay·✕는 등록 전에는 닫히지 않고 안내만 한다 — 로그인 직후 최소 1회는 반드시 거치게 하기 위함) */
+  var overlayClick = first ? "App.toast('카드 등록을 완료해야 계속 이용할 수 있어요')" : "App.closeCardInfo()";
+  return '<div class="ov" onclick="'+overlayClick+'" role="dialog" aria-modal="true" aria-label="이용권 전용 카드">'+
     '<div class="mod" onclick="App.stop(event)" style="max-width:420px">'+
       '<div class="mod-h"><div>'+
         '<span class="eyebrow">'+(first?'카드 자동 등록됨(데모)':'카드 관리')+'</span>'+
         '<h2 style="font-size:20px;font-weight:800;margin-top:6px">스포츠강좌이용권 전용 카드</h2></div>'+
-        '<button type="button" class="icb" onclick="App.'+(first?'dismissCardNotice':'closeCardInfo')+'()" aria-label="닫기">✕</button></div>'+
-      (first? '<p class="note" style="margin-top:2px">실제로는 선정 문자 수신 후 신한카드에서 본인이 직접 신청해야 하는 «스포츠강좌이용권 전용 체크카드»예요. '+
-        '이 앱은 결제 데모를 위해 로그인할 때 자동으로 카드를 연결해 드려요.</p>' : '')+
-      '<div class="kv" style="margin-top:14px"><b>카드 번호</b><span class="mono">'+esc(u.card.no)+'</span></div>'+
-      '<div class="kv"><b>연계 은행</b><span class="mono">'+esc(u.card.bank)+'</span></div>'+
-      '<div class="kv"><b>연계 계좌 잔액</b><span class="mono">'+won(u.card.balance)+'</span></div>'+
-      '<p class="src" style="margin-top:10px">본인부담금(자부담)은 결제 전 이 잔액에서 자동으로 빠져나가요. '+
-        '계좌이체나 다른 카드로는 결제할 수 없고, 잔액이 모자라면 결제가 진행되지 않아요(공식 이용안내 기준).</p>'+
-      /* CHG-81 리서치로 재확인: 카드 발급·분실신고는 신한카드, 이용권 자체(선정·강좌) 문의는
-         상담센터로 연락 창구가 나뉩니다(svoucher.kspo.or.kr / dvoucher.kspo.or.kr 공통 안내). */
-      '<p class="src" style="margin-top:6px">실제 카드 발급·분실신고 문의는 신한카드 고객센터(1544-7000), 이용권 자체 문의는 스포츠강좌이용권 상담센터(1551-0078)로 하시면 돼요.</p>'+
-      '<button type="button" class="btn btn-o btn-blk" style="margin-top:14px" onclick="App.topUpCard(50000)">데모 충전(5만원)</button>'+
+        '<button type="button" class="icb" onclick="'+overlayClick+'" aria-label="닫기">✕</button></div>'+
+      (first
+        ? '<p class="note" style="margin-top:2px">실제로는 선정 문자 수신 후 신한카드에서 본인이 직접 신청해야 하는 «스포츠강좌이용권 전용 체크카드»예요. '+
+            '이 앱은 결제 데모를 위해 로그인할 때 카드를 자동으로 연결해 드려요. 아래에서 카드번호를 확인·등록해야 계속 이용할 수 있어요.</p>'+
+          '<div class="auth-f" style="margin-top:12px">'+
+            '<label for="cardNoInput">카드 번호</label>'+
+            '<input class="tin" id="cardNoInput" placeholder="카드번호를 입력하거나 자동입력을 눌러주세요" autocomplete="off">'+
+          '</div>'+
+          '<button type="button" class="btn btn-g btn-blk btn-sm" style="margin-top:8px" onclick="App.fillCardEntry()">카드번호 자동입력</button>'+
+          '<p class="src" style="margin-top:8px">문자로 받은 실제 카드번호가 <b class="mono">'+esc(u.card.no)+'</b>라고 가정한 데모예요.</p>'+
+          '<div class="kv" style="margin-top:14px"><b>연계 은행</b><span class="mono">'+esc(u.card.bank)+'</span></div>'+
+          '<div class="kv"><b>연계 계좌 잔액</b><span class="mono">'+won(u.card.balance)+'</span></div>'+
+          '<button type="button" class="btn btn-o btn-blk" style="margin-top:14px" onclick="App.confirmCardEntry()">등록 완료하고 시작하기</button>'
+        : '<div class="kv" style="margin-top:14px"><b>카드 번호</b><span class="mono">'+esc(u.card.no)+'</span></div>'+
+          '<div class="kv"><b>연계 은행</b><span class="mono">'+esc(u.card.bank)+'</span></div>'+
+          '<div class="kv"><b>연계 계좌 잔액</b><span class="mono">'+won(u.card.balance)+'</span></div>'+
+          '<p class="src" style="margin-top:10px">본인부담금(자부담)은 결제 전 이 잔액에서 자동으로 빠져나가요. '+
+            '계좌이체나 다른 카드로는 결제할 수 없고, 잔액이 모자라면 결제가 진행되지 않아요(공식 이용안내 기준).</p>'+
+          /* CHG-81 리서치로 재확인: 카드 발급·분실신고는 신한카드, 이용권 자체(선정·강좌) 문의는
+             상담센터로 연락 창구가 나뉩니다(svoucher.kspo.or.kr / dvoucher.kspo.or.kr 공통 안내). */
+          '<p class="src" style="margin-top:6px">실제 카드 발급·분실신고 문의는 신한카드 고객센터(1544-7000), 이용권 자체 문의는 스포츠강좌이용권 상담센터(1551-0078)로 하시면 돼요.</p>'+
+          '<button type="button" class="btn btn-o btn-blk" style="margin-top:14px" onclick="App.topUpCard(50000)">데모 충전(5만원)</button>')+
     '</div></div>';
 }
 
@@ -6483,12 +6546,27 @@ App.unloadNation=function(){
 
 /* ---------- CHG-22 로그인 액션 ---------- */
 App.openAuth=function(tab){
-  state.auth={ open:true, tab:(tab==="admin"?"admin":"user"), err:"" };
+  state.auth={ open:true, tab:(tab==="admin"?"admin":"user"), err:"", signup:false, signupMsg:"" };
   state.modal=null; state.advModal=null;
   render();
 };
 App.closeAuth=function(){ state.auth.open=false; state.auth.err=""; render(); };
-App.authTab=function(t){ state.auth.tab=t; state.auth.err=""; render(); };
+App.authTab=function(t){ state.auth.tab=t; state.auth.err=""; state.auth.signup=false; state.auth.signupMsg=""; render(); };
+/* CHG-84: 회원가입 모형(모형만 — 실제 계정을 만들지는 않고, 입력한 아이디를 로그인 폼에 옮겨줌) */
+App.toggleSignup=function(){ state.auth.signup=!state.auth.signup; state.auth.signupMsg=""; render(); };
+App.submitSignup=function(){
+  var v=function(id){ var el=document.getElementById(id); return el?String(el.value||"").trim():""; };
+  var name=v("suName"), sid=v("suId"), pw=v("suPw"), pw2=v("suPw2");
+  if(!name||!sid||!pw){ state.auth.signupMsg="이름·아이디·비밀번호를 모두 입력해주세요."; render(); return; }
+  if(pw.length<4){ state.auth.signupMsg="비밀번호는 4자 이상이에요."; render(); return; }
+  if(pw!==pw2){ state.auth.signupMsg="비밀번호가 서로 달라요."; render(); return; }
+  /* AUTH-HOOK ③ 실제 시행 시 이 자리에서 서버에 회원가입을 요청하세요. 이 데모는 화면 흐름만 보여줍니다. */
+  state.auth.signup=false; state.auth.signupMsg="";
+  state.auth.tab="user"; state.auth.err="";
+  render();
+  var ui=document.getElementById("uId"); if(ui) ui.value=sid;
+  App.toast(name+"님, 가입 화면(데모) 확인했어요 — 같은 아이디로 로그인해보세요");
+};
 App.fillDemo=function(){
   if(state.auth.tab==="admin"){
     var ai=document.getElementById("aId"), ap=document.getElementById("aPw");
