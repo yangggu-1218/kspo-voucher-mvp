@@ -4866,8 +4866,7 @@ function authModalHTML(){
       (err?'<p class="auth-err">'+esc(err)+'</p>':'')+
       '<button type="button" class="btn btn-o btn-blk" style="margin-top:16px" onclick="App.submitAuth()">관리자로 로그인</button>'+
       '<button type="button" class="btn btn-g btn-blk btn-sm" style="margin-top:8px" onclick="App.fillDemo()">심사용 계정 자동입력</button>'+
-      '<p class="src" style="margin-top:14px">심사용 계정 <b class="mono">'+esc(ADMIN_ID)+' / '+esc(ADMIN_PW)+'</b> — 공모전 심사를 위해 공개해 둡니다. '+
-        '관리자 세션은 브라우저 탭을 닫으면 만료돼요.</p>'
+      '<p class="src" style="margin-top:14px">심사용 <b class="mono">'+esc(ADMIN_ID)+' / '+esc(ADMIN_PW)+'</b></p>'
     : '<div class="auth-f">'+
         '<label for="uId">아이디</label>'+
         '<input class="tin" id="uId" data-fk="uId" value="" placeholder="아이디" autocomplete="username" '+
@@ -4879,8 +4878,7 @@ function authModalHTML(){
       (err?'<p class="auth-err">'+esc(err)+'</p>':'')+
       '<button type="button" class="btn btn-o btn-blk" style="margin-top:16px" onclick="App.submitAuth()">로그인</button>'+
       '<button type="button" class="btn btn-g btn-blk btn-sm" style="margin-top:8px" onclick="App.fillDemo()">심사용 계정 자동입력</button>'+
-      '<p class="src" style="margin-top:14px">심사용 계정 <b class="mono">'+esc(DEMO_USER.id)+' / '+esc(DEMO_USER.pw)+'</b> · '+
-        '진단 결과와 담은 강좌는 로그인과 상관없이 이 기기에 남아요.</p>'+
+      '<p class="src" style="margin-top:14px">심사용 <b class="mono">'+esc(DEMO_USER.id)+' / '+esc(DEMO_USER.pw)+'</b></p>'+
       '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">'+
         (state.auth.signup
           ? '<div class="auth-f">'+
@@ -4894,10 +4892,9 @@ function authModalHTML(){
               '<input class="tin" id="suPw2" type="password" placeholder="비밀번호 확인" autocomplete="off">'+
             '</div>'+
             (state.auth.signupMsg?'<p class="auth-err">'+esc(state.auth.signupMsg)+'</p>':'')+
-            '<button type="button" class="btn btn-o btn-blk btn-sm" style="margin-top:10px" onclick="App.submitSignup()">가입하기(데모)</button>'+
-            '<button type="button" class="btn btn-g btn-blk btn-sm" style="margin-top:6px" onclick="App.toggleSignup()">취소</button>'+
-            '<p class="src" style="margin-top:10px">화면 흐름만 보여주는 회원가입 모형이에요. 실제 시행 때는 정부24·공단 통합 가입으로 연결됩니다.</p>'
-          : '<button type="button" class="btn btn-g btn-blk btn-sm" onclick="App.toggleSignup()">아직 계정이 없으신가요? 회원가입</button>')+
+            '<button type="button" class="btn btn-o btn-blk btn-sm" style="margin-top:10px" onclick="App.submitSignup()">가입하기</button>'+
+            '<button type="button" class="btn btn-g btn-blk btn-sm" style="margin-top:6px" onclick="App.toggleSignup()">취소</button>'
+          : '<button type="button" class="btn btn-g btn-blk btn-sm" onclick="App.toggleSignup()">회원가입</button>')+
       '</div>';
 
   return '<div class="ov" onclick="App.closeAuth()" role="dialog" aria-modal="true" aria-label="로그인">'+
@@ -4910,8 +4907,7 @@ function authModalHTML(){
         tb("user","이용자 로그인")+tb("admin","관리자 로그인")+
       '</div>'+
       body+
-      '<p class="src" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">'+
-        '지금은 화면 확인용 데모 로그인이에요. 실제 시행 때는 정부24 간편인증·공단 통합 로그인으로 연결됩니다.</p>'+
+      '<p class="src" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">데모 로그인이에요.</p>'+
     '</div></div>';
 }
 
@@ -4936,17 +4932,15 @@ function cardModalHTML(){
         '<h2 style="font-size:20px;font-weight:800;margin-top:6px">스포츠강좌이용권 전용 카드</h2></div>'+
         '<button type="button" class="icb" onclick="'+overlayClick+'" aria-label="닫기">✕</button></div>'+
       (first
-        ? '<p class="note" style="margin-top:2px">실제로는 선정 문자 수신 후 신한카드에서 본인이 직접 신청해야 하는 «스포츠강좌이용권 전용 체크카드»예요. '+
-            '이 앱은 결제 데모를 위해 로그인할 때 카드를 자동으로 연결해 드려요. 아래에서 카드번호를 확인·등록해야 계속 이용할 수 있어요.</p>'+
+        ? '<p class="note" style="margin-top:2px">카드가 자동으로 연결됐어요. 카드번호를 등록해야 계속 이용할 수 있어요.</p>'+
           '<div class="auth-f" style="margin-top:12px">'+
             '<label for="cardNoInput">카드 번호</label>'+
-            '<input class="tin" id="cardNoInput" placeholder="카드번호를 입력하거나 자동입력을 눌러주세요" autocomplete="off">'+
+            '<input class="tin" id="cardNoInput" placeholder="예: '+esc(u.card.no)+'" autocomplete="off">'+
           '</div>'+
-          '<button type="button" class="btn btn-g btn-blk btn-sm" style="margin-top:8px" onclick="App.fillCardEntry()">카드번호 자동입력</button>'+
-          '<p class="src" style="margin-top:8px">문자로 받은 실제 카드번호가 <b class="mono">'+esc(u.card.no)+'</b>라고 가정한 데모예요.</p>'+
+          '<button type="button" class="btn btn-g btn-blk btn-sm" style="margin-top:8px" onclick="App.fillCardEntry()">자동입력</button>'+
           '<div class="kv" style="margin-top:14px"><b>연계 은행</b><span class="mono">'+esc(u.card.bank)+'</span></div>'+
           '<div class="kv"><b>연계 계좌 잔액</b><span class="mono">'+won(u.card.balance)+'</span></div>'+
-          '<button type="button" class="btn btn-o btn-blk" style="margin-top:14px" onclick="App.confirmCardEntry()">등록 완료하고 시작하기</button>'
+          '<button type="button" class="btn btn-o btn-blk" style="margin-top:14px" onclick="App.confirmCardEntry()">등록 완료</button>'
         : '<div class="kv" style="margin-top:14px"><b>카드 번호</b><span class="mono">'+esc(u.card.no)+'</span></div>'+
           '<div class="kv"><b>연계 은행</b><span class="mono">'+esc(u.card.bank)+'</span></div>'+
           '<div class="kv"><b>연계 계좌 잔액</b><span class="mono">'+won(u.card.balance)+'</span></div>'+
