@@ -1973,6 +1973,7 @@ var state={
   session:{ user:null, admin:false },
   auth:{ open:false, tab:"user", err:"", signup:false, signupMsg:"" },
   cardModal:false,   /* CHG-80: 이용권 전용 카드(데모) 등록·관리 창 */
+  pullInfoOpen:false,   /* CHG-86: "당겨쓰기란?" 설명 접기/펼치기 — 기본은 접힘 */
   /* CHG-65: 장애인스포츠강좌이용권 등록강좌·시설 조인 데이터 (data/dvoucher.json) 로딩 상태 */
   dv:{ status:"idle" },
   /* CHG-71: 장바구니(state.picked 재사용) · 예약/결제 시뮬레이션 모달 상태.
@@ -2634,6 +2635,8 @@ var App={
   },
   openCardInfo:function(){ state.cardModal=true; render(); },
   closeCardInfo:function(){ state.cardModal=false; render(); },
+  /* CHG-86: "당겨쓰기란?" 설명 접기/펼치기 */
+  togglePullInfo:function(){ state.pullInfoOpen=!state.pullInfoOpen; render(); },
   dismissCardNotice:function(){
     var u=state.session.user; if(u&&u.card) u.card.justIssued=false;
     persist(); render();
@@ -3118,6 +3121,8 @@ function homeHTML(){
       '</div>'+
       '<div>'+gaugeHTML(demoLimit,60000,{label:"유아·초등 기준"})+
         '<p class="note" style="margin-top:10px">60,000원 강좌 하나만 들으면 매달 <b>45,000원</b>이 사라져요.</p>'+
+        '<p class="note" style="margin-top:6px">강좌비가 이번 달 지원금보다 비싸면, 다음 달 지원금을 미리 앞당겨 써서(당겨쓰기) 본인부담을 줄일 수도 있어요.</p>'+
+        '<div style="margin-top:6px">'+pullInfoHTML()+'</div>'+
       '</div>'+
     '</div>'+
   '</div></section>'+
@@ -4535,6 +4540,26 @@ function quoteOrder(list){
     remainBefore:remainBefore, remainAfter:remain, canPull:canPull };
 }
 function pullLabel(pull){ return pull.map(function(p){ return monthLabel(p.ym); }).join("·"); }
+/* CHG-86: 당겨쓰기가 여러 달에 걸치면 "9월·10월 지원금" 한 줄로 뭉쳐 보여주던 것을,
+   몇 월 지원금을 얼마씩 썼는지 한눈에 보이도록 달마다 줄을 나눠 보여준다. */
+function pullRowsHTML(q){
+  return q.pull.map(function(p){
+    return '<div class="prow minus"><span>'+esc(monthLabel(p.ym))+' 지원금 <span class="src">(당겨쓰기)</span></span>'+
+      '<span class="mono">− '+won(p.amount)+'</span></div>';
+  }).join("");
+}
+/* CHG-86: "당겨쓰기란?" — 기본은 접혀 있다가 눌렀을 때만 짧은 설명이 펼쳐지도록 */
+function pullInfoHTML(){
+  return '<button type="button" class="lnk" style="font-size:13px" onclick="App.togglePullInfo()">'+
+      (state.pullInfoOpen?'▲ 당겨쓰기란?':'▼ 당겨쓰기란?')+'</button>'+
+    (state.pullInfoOpen?
+      '<div class="terms" style="margin-top:6px">'+
+        '이번 달 지원금이 모자라면 다음 달·다다음 달 지원금(최대 2개월)을 미리 앞당겨 써요.<br>'+
+        '미리 쓴 금액만큼 해당 달의 지원금이 줄어들며, 총지원금이 늘어나는 것은 아니에요.<br>'+
+        '유·청소년 이용권에만 적용돼요, 여러 달 수강료를 미리 결제하는 용도는 아니며, '+
+        '결제일부터 한 달 이내 수강·출석을 완료해야 해요.'+
+      '</div>' : '');
+}
 function checkoutBlocker(q){
   if(!q.items.length) return "결제할 강좌가 없어요";
   if(q.L==null) return "지원 구분을 먼저 골라주세요";
@@ -4589,11 +4614,11 @@ function priceBoxHTML(q, title){
   return '<div class="paybox">'+
     (title?'<b style="font-size:14px">'+esc(title)+'</b>':'')+
     '<div class="prow"><span>총 수강료</span><span class="mono">'+won(q.total)+'</span></div>'+
-    '<div class="prow minus"><span>이번 달 지원금</span><span class="mono">− '+won(q.nowTotal)+'</span></div>'+
-    (q.pullTotal>0?'<div class="prow minus"><span>지원금 당겨쓰기 <span class="src">('+esc(pullLabel(q.pull))+' 지원금)</span></span><span class="mono">− '+won(q.pullTotal)+'</span></div>':'')+
+    '<div class="prow minus"><span>'+esc(monthLabel(state.recYM))+' 지원금</span><span class="mono">− '+won(q.nowTotal)+'</span></div>'+
+    pullRowsHTML(q)+
     '<div class="prow ptot"><span>본인부담금(자부담)</span><span class="mono" style="color:'+(q.selfTotal>0?'var(--lost)':'var(--ok)')+'">'+won(q.selfTotal)+'</span></div>'+
-    (q.L!=null?'<p class="src" style="margin-top:6px">이번 달 남은 지원금 '+won(q.remainBefore)+' → 결제 후 '+won(q.remainAfter)+
-      (q.pullTotal>0?' · '+esc(pullLabel(q.pull))+' 지원금에서 '+won(q.pullTotal)+'을 미리 당겨 써서 그만큼 그달 지원금이 줄어요':'')+'</p>':'')+
+    (q.L!=null?'<p class="src" style="margin-top:6px">이번 달 남은 지원금 '+won(q.remainBefore)+' → 결제 후 '+won(q.remainAfter)+'</p>':'')+
+    (q.canPull?'<div style="margin-top:8px">'+pullInfoHTML()+'</div>':'')+
   '</div>';
 }
 /* CHG-80 리서치로 재확인: 실제로는 카드사·계좌이체를 고르는 게 아니라, 선정자에게 발급되는
