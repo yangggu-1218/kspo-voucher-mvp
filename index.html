@@ -1523,38 +1523,42 @@ var SLOTS = [{id:"morning",label:"오전·주말"},{id:"after",label:"하교 후
 /* 종목 특성 — «어떻게 하는 운동인가»에 대한 사실 기술입니다.
    건강 효과(키·체중 등)는 다루지 않습니다. 그건 국민체력100 운동처방의 영역이에요.
    solo 1=혼자 0=팀 / contact 1=몸이 많이 부딪힘 / indoor 1=실내 / music 1=음악 중심 / water 1=물속 */
+/* CHG-92: 세부 검사(3~5분)에서 쓰는 competitive(경쟁 지향)·intensity(격렬함)·precision(정교함)
+   3개 축을 추가합니다. 기초 검사(1분)는 이 3개를 묻지 않으므로 sportFit()에서 자동으로
+   빠지고, 두 검사가 같은 점수 계산 로직을 공유합니다. 값은 공인 심리검사가 아니라
+   이 앱 제작진이 각 종목의 일반적인 특징을 바탕으로 매긴 참고용 수치예요(종목 소개 문구 참고). */
 var SPORT_TRAITS = [
-  { n:"태권도",  solo:1,   contact:.7, indoor:1,  music:.2, water:0, d:"품새와 겨루기를 함께 배워요. 띠 승급이 있어요." },
-  { n:"유도",    solo:1,   contact:1,  indoor:1,  music:0,  water:0, d:"상대를 잡고 넘기는 운동이라 몸이 많이 닿아요." },
-  { n:"검도",    solo:1,   contact:.6, indoor:1,  music:0,  water:0, d:"죽도로 겨루고 예절과 기합을 중요하게 여겨요." },
-  { n:"합기도",  solo:1,   contact:.8, indoor:1,  music:0,  water:0, d:"상대의 힘을 흘려 넘기는 무도예요." },
-  { n:"주짓수",  solo:1,   contact:1,  indoor:1,  music:0,  water:0, d:"바닥에서 붙잡고 겨루는 시간이 많아요." },
-  { n:"복싱",    solo:1,   contact:.8, indoor:1,  music:.3, water:0, d:"혼자 하는 훈련이 많고 리듬감이 필요해요." },
-  { n:"축구(풋살)",    solo:0,   contact:.7, indoor:.3, music:0,  water:0, d:"여럿이 뛰는 팀 경기예요. 실외가 많아요." },
-  { n:"농구",    solo:0,   contact:.6, indoor:1,  music:0,  water:0, d:"체육관에서 여럿이 하는 팀 경기예요." },
-  { n:"배구",    solo:0,   contact:.2, indoor:1,  music:0,  water:0, d:"네트를 사이에 두는 팀 경기라 몸싸움이 없어요." },
-  { n:"야구",    solo:0,   contact:.3, indoor:0,  music:0,  water:0, d:"실외에서 여럿이 하고 기다리는 시간이 있어요." },
-  { n:"배드민턴",solo:.5,  contact:0,  indoor:1,  music:0,  water:0, d:"둘이서 네트를 사이에 두고 해요." },
-  { n:"탁구",    solo:.5,  contact:0,  indoor:1,  music:0,  water:0, d:"좁은 공간에서 빠르게 주고받아요." },
-  { n:"테니스",  solo:.5,  contact:0,  indoor:.3, music:0,  water:0, d:"주로 실외 코트에서 둘이서 해요." },
-  { n:"수영",    solo:1,   contact:0,  indoor:1,  music:0,  water:1, d:"물속에서 혼자 하는 운동이에요." },
-  { n:"줄넘기",  solo:1,   contact:0,  indoor:1,  music:.6, water:0, d:"혼자 리듬을 타며 하고 좁은 공간에서도 돼요." },
-  { n:"무용(발레 등)",    solo:1,   contact:0,  indoor:1,  music:1,  water:0, d:"음악에 맞춰 자세와 동작을 익혀요." },
-  { n:"댄스(줌바 등)",    solo:.7,  contact:0,  indoor:1,  music:1,  water:0, d:"음악에 맞춰 여럿이 함께 추기도 해요." },
-  { n:"에어로빅",solo:.7,  contact:0,  indoor:1,  music:1,  water:0, d:"음악에 맞춰 몸을 크게 움직여요." },
-  { n:"요가",    solo:1,   contact:0,  indoor:1,  music:.3, water:0, d:"천천히 자세를 잡고 호흡에 집중해요." },
-  { n:"필라테스",solo:1,   contact:0,  indoor:1,  music:.3, water:0, d:"기구나 매트에서 천천히 움직여요." },
-  { n:"클라이밍",solo:1,   contact:0,  indoor:.7, music:0,  water:0, d:"벽을 오르며 길을 스스로 찾아요." },
-  { n:"롤러인라인",  solo:.7,  contact:0,  indoor:0,  music:0,  water:0, d:"실외에서 타며 균형을 익혀요." },
+  { n:"태권도",  solo:1,   contact:.7, indoor:1,  music:.2, water:0, competitive:.7, intensity:.8, precision:.6, d:"품새와 겨루기를 함께 배워요. 띠 승급이 있어요." },
+  { n:"유도",    solo:1,   contact:1,  indoor:1,  music:0,  water:0, competitive:.8, intensity:.8, precision:.5, d:"상대를 잡고 넘기는 운동이라 몸이 많이 닿아요." },
+  { n:"검도",    solo:1,   contact:.6, indoor:1,  music:0,  water:0, competitive:.7, intensity:.6, precision:.8, d:"죽도로 겨루고 예절과 기합을 중요하게 여겨요." },
+  { n:"합기도",  solo:1,   contact:.8, indoor:1,  music:0,  water:0, competitive:.3, intensity:.5, precision:.6, d:"상대의 힘을 흘려 넘기는 무도예요." },
+  { n:"주짓수",  solo:1,   contact:1,  indoor:1,  music:0,  water:0, competitive:.8, intensity:.7, precision:.7, d:"바닥에서 붙잡고 겨루는 시간이 많아요." },
+  { n:"복싱",    solo:1,   contact:.8, indoor:1,  music:.3, water:0, competitive:.7, intensity:.9, precision:.6, d:"혼자 하는 훈련이 많고 리듬감이 필요해요." },
+  { n:"축구(풋살)",    solo:0,   contact:.7, indoor:.3, music:0,  water:0, competitive:.8, intensity:.8, precision:.4, d:"여럿이 뛰는 팀 경기예요. 실외가 많아요." },
+  { n:"농구",    solo:0,   contact:.6, indoor:1,  music:0,  water:0, competitive:.8, intensity:.8, precision:.5, d:"체육관에서 여럿이 하는 팀 경기예요." },
+  { n:"배구",    solo:0,   contact:.2, indoor:1,  music:0,  water:0, competitive:.7, intensity:.6, precision:.5, d:"네트를 사이에 두는 팀 경기라 몸싸움이 없어요." },
+  { n:"야구",    solo:0,   contact:.3, indoor:0,  music:0,  water:0, competitive:.7, intensity:.4, precision:.6, d:"실외에서 여럿이 하고 기다리는 시간이 있어요." },
+  { n:"배드민턴",solo:.5,  contact:0,  indoor:1,  music:0,  water:0, competitive:.6, intensity:.6, precision:.6, d:"둘이서 네트를 사이에 두고 해요." },
+  { n:"탁구",    solo:.5,  contact:0,  indoor:1,  music:0,  water:0, competitive:.6, intensity:.5, precision:.8, d:"좁은 공간에서 빠르게 주고받아요." },
+  { n:"테니스",  solo:.5,  contact:0,  indoor:.3, music:0,  water:0, competitive:.6, intensity:.6, precision:.6, d:"주로 실외 코트에서 둘이서 해요." },
+  { n:"수영",    solo:1,   contact:0,  indoor:1,  music:0,  water:1, competitive:.3, intensity:.6, precision:.5, d:"물속에서 혼자 하는 운동이에요." },
+  { n:"줄넘기",  solo:1,   contact:0,  indoor:1,  music:.6, water:0, competitive:.2, intensity:.7, precision:.5, d:"혼자 리듬을 타며 하고 좁은 공간에서도 돼요." },
+  { n:"무용(발레 등)",    solo:1,   contact:0,  indoor:1,  music:1,  water:0, competitive:.1, intensity:.5, precision:.9, d:"음악에 맞춰 자세와 동작을 익혀요." },
+  { n:"댄스(줌바 등)",    solo:.7,  contact:0,  indoor:1,  music:1,  water:0, competitive:.1, intensity:.6, precision:.4, d:"음악에 맞춰 여럿이 함께 추기도 해요." },
+  { n:"에어로빅",solo:.7,  contact:0,  indoor:1,  music:1,  water:0, competitive:.1, intensity:.6, precision:.3, d:"음악에 맞춰 몸을 크게 움직여요." },
+  { n:"요가",    solo:1,   contact:0,  indoor:1,  music:.3, water:0, competitive:0,  intensity:.1, precision:.6, d:"천천히 자세를 잡고 호흡에 집중해요." },
+  { n:"필라테스",solo:1,   contact:0,  indoor:1,  music:.3, water:0, competitive:0,  intensity:.2, precision:.7, d:"기구나 매트에서 천천히 움직여요." },
+  { n:"클라이밍",solo:1,   contact:0,  indoor:.7, music:0,  water:0, competitive:.3, intensity:.6, precision:.7, d:"벽을 오르며 길을 스스로 찾아요." },
+  { n:"롤러인라인",  solo:.7,  contact:0,  indoor:0,  music:0,  water:0, competitive:.2, intensity:.6, precision:.5, d:"실외에서 타며 균형을 익혀요." },
   /* CHG-23: 전국 실데이터에 들어 있는데 성향 매칭표에 없어서 «종목 찾기»에서 아예 빠지던 종목들.
      QA 스윕(qa_sweep.js)이 COURSES ↔ SPORT_TRAITS 대사로 잡아낸 항목입니다. */
-  { n:"볼링",    solo:1,   contact:0,  indoor:1,  music:.2, water:0, d:"혼자 차례를 기다렸다가 공을 굴려요. 실내에서 해요." },
-  { n:"스쿼시",  solo:.5,  contact:0,  indoor:1,  music:0,  water:0, d:"벽에 공을 쳐서 주고받아요. 좁은 실내 코트에서 빠르게 움직여요." },
-  { n:"빙상(스케이트)",    solo:1,   contact:0,  indoor:1,  music:.4, water:0, d:"얼음 위에서 균형을 잡으며 타요." },
-  { n:"승마",    solo:1,   contact:0,  indoor:.3, music:0,  water:0, d:"말과 호흡을 맞추고 실외 시간이 많아요." },
-  { n:"골프",    solo:1,   contact:0,  indoor:.5, music:0,  water:0, d:"혼자 집중해서 반복 연습해요." },
-  { n:"헬스",    solo:1,   contact:0,  indoor:1,  music:.3, water:0, d:"기구로 혼자 운동해요." },
-  { n:"종합체육시설",solo:.5,contact:.3,indoor:1, music:.3, water:0, d:"여러 운동을 골라서 할 수 있어요." }
+  { n:"볼링",    solo:1,   contact:0,  indoor:1,  music:.2, water:0, competitive:.4, intensity:.2, precision:.6, d:"혼자 차례를 기다렸다가 공을 굴려요. 실내에서 해요." },
+  { n:"스쿼시",  solo:.5,  contact:0,  indoor:1,  music:0,  water:0, competitive:.6, intensity:.7, precision:.6, d:"벽에 공을 쳐서 주고받아요. 좁은 실내 코트에서 빠르게 움직여요." },
+  { n:"빙상(스케이트)",    solo:1,   contact:0,  indoor:1,  music:.4, water:0, competitive:.3, intensity:.5, precision:.7, d:"얼음 위에서 균형을 잡으며 타요." },
+  { n:"승마",    solo:1,   contact:0,  indoor:.3, music:0,  water:0, competitive:.2, intensity:.4, precision:.7, d:"말과 호흡을 맞추고 실외 시간이 많아요." },
+  { n:"골프",    solo:1,   contact:0,  indoor:.5, music:0,  water:0, competitive:.3, intensity:.1, precision:.9, d:"혼자 집중해서 반복 연습해요." },
+  { n:"헬스",    solo:1,   contact:0,  indoor:1,  music:.3, water:0, competitive:.1, intensity:.5, precision:.3, d:"기구로 혼자 운동해요." },
+  { n:"종합체육시설",solo:.5,contact:.3,indoor:1, music:.3, water:0, competitive:.3, intensity:.4, precision:.4, d:"여러 운동을 골라서 할 수 있어요." }
 ];
 
 var PREF_Q = [
@@ -1570,6 +1574,19 @@ var PREF_Q = [
     opts:[["좋아","물 좋아해"],["별로","물은 좀…"],["상관없어","괜찮아"]] }
 ];
 
+/* CHG-92: 세부 검사(3~5분)에서 기초 검사 5문항에 더해 추가로 묻는 3문항.
+   기초 검사와 같은 sportFit() 점수 계산을 공유하고, 더 많은 축(경쟁·격렬함·정교함)을
+   반영해서 더 세밀하게 종목을 나눠요. "MBTI처럼" 느껴지도록 여러 축을 조합하지만,
+   공인된 심리검사는 아니고 이 앱이 만든 참고용 설문이라는 점을 화면에 분명히 밝힙니다. */
+var DETAIL_EXTRA_Q = [
+  { key:"competitive", q:"승부를 겨루는 게 좋아, 내 기록만 늘면 충분해?",
+    opts:[["겨루고 싶어","이기고 지는 게 재밌어"],["내 기록이면 돼","남과 안 겨뤄도 좋아"],["상관없어","둘 다 괜찮아"]] },
+  { key:"intensity", q:"땀 뻘뻘 흘리는 격렬한 운동이 좋아, 차분한 운동이 좋아?",
+    opts:[["격렬하게","숨차게 움직이고 싶어"],["차분하게","천천히 하는 게 좋아"],["상관없어","그때그때 달라"]] },
+  { key:"precision", q:"동작을 정교하게 다듬는 것과 크게 움직이는 것 중엔?",
+    opts:[["정교하게","자세를 세밀하게 맞추고 싶어"],["크게","큼직하게 움직이는 게 좋아"],["상관없어","둘 다 괜찮아"]] }
+];
+
 function sportFit(t,p){
   var s=0, max=0;
   function add(w,v){ s+=w*v; max+=w; }
@@ -1578,6 +1595,10 @@ function sportFit(t,p){
   if(p.place==="실내") add(1.5,t.indoor); else if(p.place==="실외") add(1.5,1-t.indoor);
   if(p.music==="좋아") add(2,t.music); else if(p.music==="별로") add(.8,1-t.music);
   if(p.water==="좋아") add(2.5,t.water); else if(p.water==="별로") add(.8,1-t.water);
+  /* CHG-92: 세부 검사에서만 답하는 3축 — 기초 검사에서는 값이 비어 있어 자동으로 빠짐 */
+  if(p.competitive==="겨루고 싶어") add(1.5,t.competitive); else if(p.competitive==="내 기록이면 돼") add(1.5,1-t.competitive);
+  if(p.intensity==="격렬하게") add(1.5,t.intensity); else if(p.intensity==="차분하게") add(1.5,1-t.intensity);
+  if(p.precision==="정교하게") add(1.2,t.precision); else if(p.precision==="크게") add(1.2,1-t.precision);
   if(max===0) return null;
   return Math.round(s/max*100);
 }
@@ -1959,7 +1980,8 @@ var state={
   geo:null, geoState:"idle", geoHi:null,   /* geo: {lat,lng} — 이 기기에서만 쓰고 저장·전송하지 않음 */
   detailId:null, picked:[], rec:{},
   recYM:"", history:[], carry:null, sig:[], calSel:null,   /* CHG-60 월별 기록·이어가기·추천 신호 */
-  pref:{ together:"", contact:"", place:"", music:"", water:"" },
+  pref:{ together:"", contact:"", place:"", music:"", water:"", competitive:"", intensity:"", precision:"" },
+  prefMode:"basic",   /* CHG-92: "basic"=기초 검사(1분), "detail"=세부 검사(3~5분) */
   demand:[],
   advModal:null, advPick:1, advances:[],  /* CHG-17: 지원금 당겨쓰기(실제 제도, 최대 2개월) 미리보기 */
 
@@ -1990,7 +2012,7 @@ function persist(){
     localStorage.setItem(STORE, JSON.stringify({
       answers:state.answers, rec:state.rec, f:state.f,
       recYM:state.recYM, history:state.history, carry:state.carry, sig:state.sig,
-      pref:state.pref, demand:state.demand, advances:state.advances, orders:state.orders,
+      pref:state.pref, prefMode:state.prefMode, demand:state.demand, advances:state.advances, orders:state.orders,
       user:state.session.user
     }));
   }catch(e){}
@@ -2007,6 +2029,7 @@ function restore(){
     if(Array.isArray(d.sig)) state.sig=d.sig;
     if(d.f) state.f=Object.assign(state.f,d.f);
     if(d.pref) state.pref=Object.assign(state.pref,d.pref);
+    if(d.prefMode==="basic"||d.prefMode==="detail") state.prefMode=d.prefMode;
     if(Array.isArray(d.demand)) state.demand=d.demand;
     if(Array.isArray(d.advances)) state.advances=d.advances;
     if(Array.isArray(d.orders)) state.orders=d.orders.filter(function(o){ return o && o.no && Array.isArray(o.items); });
@@ -2758,7 +2781,10 @@ var App={
 
   /* 종목 찾기 */
   setPref:function(k,v){ state.pref[k]=v; persist(); render(); },
-  resetPref:function(){ state.pref={together:"",contact:"",place:"",music:"",water:""}; persist(); render(); },
+  resetPref:function(){ state.pref={together:"",contact:"",place:"",music:"",water:"",competitive:"",intensity:"",precision:""}; persist(); render(); },
+  /* CHG-92: 기초 검사(1분) ↔ 세부 검사(3~5분) 전환. 이미 답한 기초 5문항은 그대로 유지돼서,
+     세부 검사로 넘어가도 처음부터 다시 답할 필요가 없다 */
+  setMatchMode:function(m){ if(m!=="basic"&&m!=="detail") return; state.prefMode=m; persist(); render(); },
   addDemand:function(sp){
     if(state.demand.indexOf(sp)<0) state.demand.push(sp);
     persist(); App.toast(sp+" 요청을 남겼어요");
@@ -4331,9 +4357,22 @@ function sourcesHTML(embed){
 /* ---------- 종목 찾기 (아이 선호 매칭) ---------- */
 function matchHTML(){
   var p=state.pref;
-  var answered=PREF_Q.filter(function(q){return !!p[q.key];}).length;
+  /* CHG-92: 기초 검사(1분)는 PREF_Q 5문항만, 세부 검사(3~5분)는 DETAIL_EXTRA_Q 3문항을 더해 8문항.
+     이미 기초 검사에서 답한 5문항은 세부 검사로 넘어가도 그대로 남아 있어 다시 안 물어봄 */
+  var mode=state.prefMode==="detail"?"detail":"basic";
+  var activeQ=mode==="detail"? PREF_Q.concat(DETAIL_EXTRA_Q) : PREF_Q;
+  var answered=activeQ.filter(function(q){return !!p[q.key];}).length;
 
-  var qs=PREF_Q.map(function(q){
+  var modeTabs='<div class="auth-tabs" role="tablist" aria-label="검사 종류" style="margin-bottom:14px">'+
+    '<button type="button" role="tab" aria-selected="'+(mode==="basic")+'" onclick="App.setMatchMode(\'basic\')">기초 검사 (1분) · '+PREF_Q.length+'문항</button>'+
+    '<button type="button" role="tab" aria-selected="'+(mode==="detail")+'" onclick="App.setMatchMode(\'detail\')">세부 검사 (3~5분) · '+(PREF_Q.length+DETAIL_EXTRA_Q.length)+'문항</button>'+
+  '</div>'+
+  (mode==="detail"
+    ? '<p class="note" style="margin-bottom:10px">질문을 늘려서(혼자·여럿 등 5가지 + 경쟁·격렬함·정교함 3가지) 더 세밀하게 나눠봐요. '+
+      '다만 이건 이 앱이 만든 참고용 설문일 뿐, 국민체력100 같은 공인 체력측정이나 심리검사는 아니에요.</p>'
+    : '');
+
+  var qs=activeQ.map(function(q){
     return '<div class="qgroup">'+
       '<p class="qlabel">'+esc(q.q)+'</p>'+
       '<div class="opts3">'+q.opts.map(function(o){
@@ -4344,8 +4383,8 @@ function matchHTML(){
   }).join("");
 
   var body="";
-  if(answered<PREF_Q.length){
-    body='<div class="empty" style="margin-top:24px"><h3>'+answered+' / '+PREF_Q.length+'개 답했어요</h3></div>';
+  if(answered<activeQ.length){
+    body='<div class="empty" style="margin-top:24px"><h3>'+answered+' / '+activeQ.length+'개 답했어요</h3></div>';
   } else {
     var region=state.f.code;
     var rkey=regionKey(region);
@@ -4406,6 +4445,7 @@ function matchHTML(){
     '<span class="eyebrow">아이에게 물어보세요</span>'+
     '<h1 class="sec-t">어떤 운동이 잘 맞을까?</h1>'+
     '<p class="sec-d"><b>지역: '+esc(regionLabel(state.f.code))+'</b></p>'+
+    modeTabs+
     '<div class="card" style="padding:20px">'+qs+
       (answered? '<button type="button" class="btn btn-g btn-sm" style="margin-top:6px" onclick="App.resetPref()">다시 고르기</button>':'')+
     '</div>'+
