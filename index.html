@@ -5540,7 +5540,8 @@ var STATS_META = { origin:"partial", fileName:"KS_SPORTS_VOUCH_FCLTY_INFO_202607
   loadedAt:"2026-09-15 (가맹시설수만 실측 반영)", rows:REGION_STATS.length, calcAt:null };
 
 state.admin = { auth:false, tab:"overview", sgg:null, w:0.6, sort:"idx", sortDir:"desc", q:"", sido:"",
-  facQ:"", facSort:"course_desc", telMask:true };
+  facQ:"", facSort:"course_desc", telMask:true,
+  loginId:"", loginPw:"" };   /* CHG-87: 운영자 로그인 입력값을 state에 묶어, 토스트 등으로 인한 재렌더에도 값이 사라지지 않게 함 */
 try{ if(sessionStorage.getItem("voucher.adm")==="1"){ state.admin.auth=true; state.session.admin=true; } }catch(e){}
 
 /* ---------- 계산 ---------- */
@@ -5828,11 +5829,11 @@ function adminLoginHTML(){
       '<p class="note" style="margin:8px 0 18px">공개된 집계 데이터만 사용합니다.</p>'+
       '<div class="auth-f">'+
         '<label for="admId">관리자 ID</label>'+
-        '<input class="tin" id="admId" data-fk="admId" placeholder="관리자 ID" autocomplete="off" '+
-          'onkeydown="if(event.key===\'Enter\')App.admLogin()" style="width:100%">'+
+        '<input class="tin" id="admId" data-fk="admId" value="'+esc(state.admin.loginId)+'" placeholder="관리자 ID" autocomplete="off" '+
+          'oninput="App.setAdmField(\'loginId\',this.value)" onkeydown="if(event.key===\'Enter\')App.admLogin()" style="width:100%">'+
         '<label for="admPw">비밀번호</label>'+
-        '<input class="tin" id="admPw" type="password" data-fk="admPw" placeholder="비밀번호" autocomplete="off" '+
-          'onkeydown="if(event.key===\'Enter\')App.admLogin()" style="width:100%">'+
+        '<input class="tin" id="admPw" type="password" data-fk="admPw" value="'+esc(state.admin.loginPw)+'" placeholder="비밀번호" autocomplete="off" '+
+          'oninput="App.setAdmField(\'loginPw\',this.value)" onkeydown="if(event.key===\'Enter\')App.admLogin()" style="width:100%">'+
       '</div>'+
       '<div class="adm-rowbtns">'+
         '<button type="button" class="btn btn-o btn-sm" onclick="App.admLogin()">로그인</button>'+
@@ -6649,23 +6650,28 @@ App.logout=function(){
   if(wasAdmin || state.route==="admin") App.go("home"); else render();
 };
 
+/* CHG-87: 입력칸 값을 state에 묶어 둔다 — 전에는 admId/admPw DOM 값을 직접 읽고 썼는데,
+   App.toast()가 내부적으로 render()를 호출해 #app을 통째로 다시 그리면서(2초 뒤 토스트가
+   사라질 때도 한 번 더) 템플릿에 value가 없던 입력칸이 빈 값으로 리셋돼 버렸다.
+   그래서 «맨 아래» 운영자 화면에서 자동입력을 누르면 "넣었어요" 토스트는 뜨지만
+   정작 입력칸은 비어 있는 버그가 있었다. */
+App.setAdmField=function(key,v){ state.admin[key]=v; };
 App.admLogin=function(){
-  var el=document.getElementById("admPw");
-  var idEl=document.getElementById("admId");
-  var idOk = !idEl || String(idEl.value||"").trim()===ADMIN_ID;
-  if(el && el.value===ADMIN_PW && idOk){
+  var idOk = String(state.admin.loginId||"").trim()===ADMIN_ID;
+  if(state.admin.loginPw===ADMIN_PW && idOk){
     state.admin.auth=true;
     state.session.admin=true;
+    state.admin.loginId=""; state.admin.loginPw="";
     try{ sessionStorage.setItem("voucher.adm","1"); }catch(e){}
     render(); window.scrollTo(0,0);
   } else App.toast("관리자 ID 또는 비밀번호가 맞지 않아요");
 };
 App.admDemo=function(){
-  var idEl=document.getElementById("admId");
-  if(idEl) idEl.value=ADMIN_ID;
-  var el=document.getElementById("admPw");
-  if(el){ el.value=ADMIN_PW; el.focus(); }
+  state.admin.loginId=ADMIN_ID;
+  state.admin.loginPw=ADMIN_PW;
   App.toast("심사용 계정을 넣었어요");
+  var el=document.getElementById("admPw");
+  if(el) el.focus();
 };
 App.admLogout=function(){
   state.admin.auth=false;
