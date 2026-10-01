@@ -3719,6 +3719,16 @@ function detailHTML(c){
           ? '운영해요. 노선·탑승 위치는 시설에 문의해주세요.'
           : '운영하지 않아요.')+
         '</div></div>'+
+      /* CHG-89: 체육시설알리미(spoinfo.or.kr) 연동 1단계 — 주차장·체육지도사·안전요원 배치 여부처럼
+         수시로 바뀌는 편의시설 정보나, 타 이용자가 남긴 댓글·평점은 우리가 베껴서 보관하는 순간
+         바로 낡은 정보가 될 위험이 있어 그대로 긁어오지 않고, 실시간 원본을 바로 보여주는
+         체육시설알리미로 안내한다("전문가 패널" 결론: 안전점검 등급처럼 공식 Open API로 공개된
+         데이터만 직접 연동하고, 공개 API가 없는 값은 출처로 링크한다). */
+      '<div class="fact"><div class="k">주차·지도자·안전요원 등</div><div class="v">'+
+        '이 앱에는 없는 주차장·체육지도사·안전요원 배치·주말운영 여부와 이용자 후기는 '+
+        '<a href="https://www.spoinfo.or.kr/map/map.do" target="_blank" rel="noopener noreferrer">체육시설알리미</a>에서 '+
+        '시설명으로 검색하면 실시간으로 확인할 수 있어요.'+
+        '</div></div>'+
       (c.feeRaw?'<div class="fact"><div class="k">원문 가격 표기</div><div class="v">'+esc(c.feeRaw)+'</div></div>':'')+
       '<div class="fact"><div class="k">전화</div><div class="v"><a href="tel:'+esc(c.tel)+'" class="mono">'+esc(c.tel)+'</a></div></div>'+
       siblingsHTML+
@@ -3727,6 +3737,8 @@ function detailHTML(c){
       /* CHG-66: «등록 후 기록하기»가 이 앱에서 등록이 되는 것처럼 읽혀 문구를 분명히 합니다 */
       '<button type="button" class="btn btn-o btn-sm" onclick="App.register('+j(c.id)+')">공식 사이트에서 등록했다면 여기 기록하기</button>'+
       '<a class="btn btn-ol btn-sm" href="https://svoucher.kspo.or.kr/course/memberFacilityList.do" target="_blank" rel="noopener noreferrer">공식 사이트에서 확인 ↗</a>'+
+      /* CHG-89: 안전점검 등급·편의시설·이용후기는 체육시설알리미가 원본이므로 바로 연결 */
+      '<a class="btn btn-ol btn-sm" href="https://www.spoinfo.or.kr/map/map.do" target="_blank" rel="noopener noreferrer">체육시설알리미에서 안전점검·후기 보기 ↗</a>'+
     '</div>'+
     '<p class="src" style="margin-top:10px">'+(c.dataOrigin==="official"?'공식 조회 화면에서 확인한 정보예요.':'시연용 예시 데이터예요.')+'</p>'+
   '</div>';
@@ -4234,6 +4246,17 @@ function sourcesHTML(embed){
     '<p class="note">셔틀 정보는 공단 공개 데이터(가맹시설·등록강좌)에 들어 있지 않아, 현재 화면의 표시는 '+
       '<b>기능 확인용 시연값</b>입니다. 실제 운영 여부는 시설에 직접 확인해주세요. '+
       '시설별 실측값을 확보하면 코드 한 곳(<span class="mono">hasShuttle()</span>)만 교체하면 됩니다.</p>'+
+    /* CHG-89: 체육시설알리미(spoinfo.or.kr) 분석 결과 반영 — 안전점검 등급은 같은 공단이
+       공공데이터포털에 정식 Open API로 공개해 둔 걸 확인했지만, 이 앱은 서비스키가 아직 없어
+       화면에 실제로 붙이지는 못했다(거짓으로 연동됐다고 적지 않고 "연동 예정"으로 정확히 표시).
+       반면 주차장·체육지도사 배치처럼 공식 API가 없는 값은 베끼지 않고 출처로 바로 연결한다. */
+    '<h3 style="font-size:16px;font-weight:800;margin:26px 0 8px">체육시설 안전점검 등급(연동 예정)</h3>'+
+    '<p class="note">체육시설알리미(spoinfo.or.kr)를 분석해, 시설별 안전점검 종합등급(양호·주의·사용중지)이 '+
+      '공단 이름으로 <a href="https://www.data.go.kr/data/15107773/openapi.do" target="_blank" rel="noopener noreferrer">'+
+      '공공데이터포털에 정식 Open API로 공개</a>돼 있는 걸 확인했습니다. 이용허락범위 제한이 없어 연동 자체는 가능하지만, '+
+      '이 서비스 명의의 API 서비스키 발급(활용신청, 자동승인)이 아직 안 돼 있어 화면에는 아직 반영하지 않았습니다. '+
+      '반대로 주차장·체육지도사·안전요원 배치·이용자 후기처럼 공식 Open API가 없는 값은 베껴서 보관하는 대신 '+
+      '강좌 상세의 <b>체육시설알리미 바로가기</b> 링크로 원본을 바로 확인하도록 안내합니다.</p>'+
     '<h3 style="font-size:16px;font-weight:800;margin:26px 0 8px">신청 시기</h3>'+
     '<div class="tw"><table><thead><tr><th>사업</th><th>신청 시기</th><th>검증</th><th>출처</th></tr></thead><tbody>'+periods+'</tbody></table></div>'+
     '<h3 style="font-size:16px;font-weight:800;margin:26px 0 8px">중복수혜 관계</h3>'+
