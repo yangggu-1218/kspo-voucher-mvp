@@ -1955,7 +1955,7 @@ var STORE="voucher.v2";
 var state={
   route:"home", step:0, modal:null, toast:null, filtersOpen:false,
   answers:{ birthYear:"", grade:"", disability:"", code:"", tierOverride:"" },
-  f:{ code:"41500", sports:[], days:[], slots:[], verdict:"", months:1, sort:"fee", q:"", mapMode:false, radius:1000, shuttle:false, dvOnly:false },
+  f:{ code:"41500", sports:[], days:[], slots:[], verdict:"", months:1, sort:"fee", q:"", mapMode:false, radius:1000, shuttle:false, dvOnly:false, dvTypes:[] },
   geo:null, geoState:"idle", geoHi:null,   /* geo: {lat,lng} — 이 기기에서만 쓰고 저장·전송하지 않음 */
   detailId:null, picked:[], rec:{},
   recYM:"", history:[], carry:null, sig:[], calSel:null,   /* CHG-60 월별 기록·이어가기·추천 신호 */
@@ -2024,6 +2024,7 @@ function readQuery(){
     if(p.get("sort")) state.f.sort=p.get("sort");
     if(p.get("q")) state.f.q=p.get("q");
     if(p.get("dvonly")==="1") state.f.dvOnly=true;
+    if(p.get("dvtypes")) state.f.dvTypes=p.get("dvtypes").split(",").filter(Boolean);   /* CHG-90 */
     if(p.get("months")) state.f.months=Number(p.get("months"))||1;
     if(p.get("verdict")) state.f.verdict=p.get("verdict");
     if(p.get("view")==="courses") state.route="courses";
@@ -2039,6 +2040,7 @@ function shareUrl(){
   if(f.sort!=="fee") p.push("sort="+encodeURIComponent(f.sort));
   if(f.q) p.push("q="+encodeURIComponent(f.q));
   if(f.dvOnly) p.push("dvonly=1");
+  if(f.dvTypes.length) p.push("dvtypes="+encodeURIComponent(f.dvTypes.join(",")));   /* CHG-90 */
   if(f.months!==1) p.push("months="+f.months);
   if(f.verdict) p.push("verdict="+f.verdict);
   return location.origin+location.pathname+"?"+p.join("&");
@@ -2381,6 +2383,12 @@ function courseView(){
     /* CHG-66: 장애인 이용권 데이터를 아직 못 받았으면 이 필터를 «적용하지 않는다».
        예전에는 저장된 dvOnly=true 로 재방문했을 때 데이터가 없어 목록이 영구히 0건이 됐다. */
     if(f.dvOnly && DV_MAP && !c.dvoucher) return false;
+    /* CHG-90: 장애인이용권 공식 사이트의 "장애유형" 체크박스를 본떠, 특정 장애유형을 지원하는
+       강좌만 골라 볼 수 있게 함. dvDspsnLabels()로 합쳐 보여주는 라벨과 같은 기준으로 비교한다. */
+    if(f.dvTypes.length && DV_MAP){
+      var cTypes=dvDspsnLabels(c.dvDspsn);
+      if(!cTypes.length || !f.dvTypes.some(function(t){return cTypes.indexOf(t)>=0;})) return false;
+    }
     if(f.q){
       var q=f.q.trim();
       if(q && (c.facility+" "+c.name+" "+c.sport).indexOf(q)<0) return false;
@@ -2520,7 +2528,7 @@ var App={
   toggleFlag:function(key){ state.f[key]=!state.f[key]; if(key==="dvOnly"&&state.f[key]) App.ensureDvoucher(); persist(); render(); },
   showMore:function(){ state.nation.show=(state.nation.show||300)+300; render(); },
   clearFilters:function(){
-    state.f.sports=[];state.f.days=[];state.f.slots=[];state.f.verdict="";state.f.q="";state.f.shuttle=false;state.f.dvOnly=false;persist();render();
+    state.f.sports=[];state.f.days=[];state.f.slots=[];state.f.verdict="";state.f.q="";state.f.shuttle=false;state.f.dvOnly=false;state.f.dvTypes=[];persist();render();
   },
   toggleFilters:function(){ state.filtersOpen=!state.filtersOpen; render(); },
 
@@ -3464,7 +3472,22 @@ function coursesHTML(){
        state.dv.status==="error"?'<p class="src">장애인 이용권 정보를 불러오지 못해 지금은 등록시설을 가려낼 수 없어요. '+
          '<button type="button" class="lnk" onclick="App.retryDvoucher()">다시 시도</button><br>'+
          '급하면 장애인스포츠강좌이용권 공식 사이트(dvoucher.kspo.or.kr)에서 바로 확인할 수 있어요.</p>':"")+
-    '</div></div>'+
+    '</div>'+
+    /* CHG-90: 장애인스포츠강좌이용권 공식 사이트의 "장애유형" 체크박스 그리드를 참고해 추가.
+       DV_MAP이 아직 없으면(로딩 전/실패) 고를 유형이 없으니 그리드 자체를 숨긴다. */
+    (DV_MAP ? (function(){
+      var allTypes=[], seen={};
+      COURSES.forEach(function(c){ dvDspsnLabels(c.dvDspsn).forEach(function(t){ if(!seen[t]){ seen[t]=1; allTypes.push(t); } }); });
+      if(!allTypes.length) return "";
+      return '<div class="checks" style="margin-top:8px"><span class="src" style="display:block;margin-bottom:4px">지원 장애유형</span>'+
+        allTypes.map(function(t){
+          var on=f.dvTypes.indexOf(t)>=0;
+          return '<button type="button" class="chk'+(on?' on':'')+'" onclick="App.toggleArr(\'dvTypes\','+j(t)+')" aria-pressed="'+on+'">'+
+            '<span class="box"></span><span>'+esc(t)+'</span></button>';
+        }).join("")+
+      '</div>';
+    })() : "")+
+    '</div>'+
     '<div style="display:flex;gap:6px">'+
       '<button type="button" class="btn btn-g btn-sm" onclick="App.clearFilters()">초기화</button>'+
       '<button type="button" class="btn btn-g btn-sm" onclick="App.copyLink()">링크 복사</button>'+
@@ -3579,6 +3602,7 @@ function coursesHTML(){
   if(f.slots.length) active.push(f.slots.map(function(s){return SLOT_LABEL[s];}).join(", "));
   if(f.shuttle) active.push("셔틀 운영");
   if(f.dvOnly) active.push("장애인 이용권 등록시설만");
+  if(f.dvTypes.length) active.push("장애유형: "+f.dvTypes.join(", "));
   if(f.verdict) active.push({ok:"자부담 없는 강좌만",left:"지원금이 남는 강좌",pay:"자부담이 붙는 강좌"}[f.verdict]);
   if(f.q) active.push('"'+f.q+'"');
 
