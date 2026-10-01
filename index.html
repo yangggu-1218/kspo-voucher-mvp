@@ -3722,12 +3722,34 @@ function detailHTML(c){
           (siblings.length>12?'<span class="actchip" style="background:var(--bg-2);color:var(--muted)">외 '+(siblings.length-12)+'건</span>':'')+
         '</div></div></div>'
     : '';
+  /* CHG-91: 공식 장애인스포츠강좌이용권 사이트의 상세 카드(종목·장애유형 태그, 일정 한눈에,
+     가격 영역 강조)를 참고해 레이아웃만 정리합니다. 사진·신청기간·편의시설 아이콘처럼
+     우리가 실제로 갖지 못한 필드는 추가하지 않고, 지금 갖고 있는 값(종목, 요일·시간, 셔틀,
+     장애유형, 데이터 출처)만 상단 태그·일정 줄로 끌어올립니다. */
+  var headTags=[
+    '<span class="chip c-navy">'+esc(c.sport)+'</span>'
+  ];
+  if(c.dvoucher) headTags.push('<span class="chip c-ok"><span aria-hidden="true">♿</span> 장애인 이용권 등록강좌 가능성</span>');
+  else if(c.dvoucherFacility) headTags.push('<span class="chip c-warn"><span aria-hidden="true">♿</span> 장애인 이용권 등록시설</span>');
+  if(dvTypes.length) headTags.push('<span class="chip c-gray">지원 장애유형 '+esc(dvTypes.join("·"))+'</span>');
+  if(hasShuttle(c)) headTags.push('<span class="chip c-gray">'+icon("bus",12)+' 셔틀</span>');
+  headTags.push(c.dataOrigin==="official" ? '<span class="chip c-gray">공식 화면 확인</span>' : '<span class="chip c-gray">예시 데이터</span>');
+
+  var scheduleLine = (c.days && c.days.length)
+    ? '<div class="cmeta" style="margin-top:8px;font-size:14px">'+
+        '<span class="mrow">'+icon("calendar",14)+esc(c.flexible||c.days.length===7?"자유이용":c.days.join("·")+"요일")+'</span>'+
+        (c.slot&&SLOT_LABEL[c.slot]?'<span class="mrow">'+icon("clock",14)+esc(SLOT_LABEL[c.slot])+'</span>':'')+
+      '</div>'
+    : '';
+
   return '<div class="panel" onclick="App.stop(event)" style="grid-column:1/-1">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'+
       '<h3 style="font-size:17px;font-weight:800">'+esc(c.name)+'</h3>'+
       '<button type="button" class="icb" onclick="App.closeDetail()" aria-label="닫기">✕</button>'+
     '</div>'+
-    moneyBlock+
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+headTags.join("")+'</div>'+
+    scheduleLine+
+    '<div class="card" style="padding:14px;margin-top:14px;background:var(--bg-2)">'+moneyBlock+'</div>'+
     '<div class="facts">'+
       '<div class="fact"><div class="k">시설명</div><div class="v">'+esc(c.facility)+(c.gbn?' <span class="chip c-gray">'+esc(c.gbn)+'</span>':'')+'</div></div>'+
       '<div class="fact"><div class="k">시설종목</div><div class="v">'+esc(c.sport)+'</div></div>'+
