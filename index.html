@@ -2076,7 +2076,10 @@ var state={
   advModal:null, advPick:1, advances:[],  /* CHG-17: 지원금 당겨쓰기(실제 제도, 최대 2개월) 미리보기 */
 
   /* CHG-22 로그인 — session.user 는 이 기기(localStorage)에만, admin 은 탭이 닫히면 만료(sessionStorage) */
-  nation:{ status:"idle", done:0, total:0, msg:"", at:null, cached:false, count:0, show:300, source:"" },
+  /* CHG-98: autoTried — 강좌 찾기 화면에 처음 들어올 때 전국 데이터를 자동으로 한 번 불러온다.
+     이후 사용자가 "표본으로" 버튼을 눌러 일부러 표본으로 되돌리면(status가 다시 idle이 돼도)
+     autoTried가 true로 남아 있어서 자동으로 다시 불러오지 않는다 — 사용자의 선택을 존중한다. */
+  nation:{ status:"idle", done:0, total:0, msg:"", at:null, cached:false, count:0, show:300, source:"", autoTried:false },
   /* CHG-54: 홈 화면 통계 카드(전국 강좌 수)는 nation_data.json.gz 를 조용히 미리 읽어 실측값을 채운다.
      App.loadNation() 과는 별개로, 진단·강좌 화면 진입 없이도 홈에서만 가볍게 불러오는 용도. */
   homeStats:{ courseCount:null, facilCount:null, loading:false, tried:false },
@@ -2570,6 +2573,14 @@ var App={
       state.matchGate={ open:true, sido:sido, code: cur ? state.f.code : (firstInSido?firstInSido.code:"") };
     }
     if(r==="courses" && state.answers.disability==="있음") App.ensureDvoucher();   /* CHG-65 */
+    /* CHG-98: 강좌 찾기 화면에 처음 들어올 때, 아직 전국 데이터를 받아본 적이 없으면(autoTried=false)
+       "전국 데이터 불러오기" 버튼을 누르지 않아도 자동으로 한 번 불러온다. 캐시(IndexedDB)나
+       data/nation.json(.gz) 정적 파일이 있으면 그걸 조용히 쓰고, 없을 때만 오픈API를 호출한다
+       (App.loadNation 내부 로직 그대로 재사용 — 동작 자체는 버튼을 누른 것과 같다). */
+    if(r==="courses" && !state.nation.autoTried && state.nation.status==="idle"){
+      state.nation.autoTried=true;
+      App.loadNation();
+    }
     state.route=r; state.modal=null; state.filtersOpen=false; render(); window.scrollTo(0,0);
   },
   /* CHG-69: 시/도를 바꾸면 시군구 선택은 그 시/도의 첫 시군구로 다시 맞춘다 —
